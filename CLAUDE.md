@@ -181,6 +181,29 @@ All query execution flows through `DuckDBService.runQuery()`. This ensures:
 4. Verify error handling by running invalid SQL
 5. Test connection open/close lifecycle
 
+## Git Commit Conventions
+
+When creating commit messages:
+
+1. **Use descriptive, multi-line commit messages** with clear explanation of changes
+2. **Include "🤖 Generated with [Claude Code](https://claude.com/claude-code)" footer** on its own line
+3. **DO NOT include Co-Authored-By lines** - these are not used in this repository
+4. **Follow conventional commit style** when appropriate (feat:, fix:, docs:, etc.)
+
+Example commit message format:
+```
+Brief summary of changes
+
+More detailed explanation of what changed and why.
+Can span multiple paragraphs.
+
+- Key change 1
+- Key change 2
+- Key change 3
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+```
+
 ## Troubleshooting
 
 **Native module errors**: Run `npm run postinstall` to rebuild for Electron
