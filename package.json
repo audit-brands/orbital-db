@@ -4,7 +4,10 @@
   "version": "0.1.0",
   "description": "Desktop client for DuckDB databases",
   "main": "out/main/main.js",
-  "author": "Jamie Ontiveros",
+  "author": {
+    "name": "Jamie Ontiveros",
+    "email": "jamie@auditbrands.com"
+  },
   "license": "MIT",
   "private": true,
   "engines": {
