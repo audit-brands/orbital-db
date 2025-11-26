@@ -3,7 +3,7 @@
   "productName": "Orbital DB",
   "version": "0.1.0",
   "description": "Desktop client for DuckDB databases",
-  "main": "dist/main/main.js",
+  "main": "out/main/main.js",
   "author": "Jamie Ontiveros",
   "license": "MIT",
   "private": true,
@@ -67,7 +67,7 @@
       "output": "release/${version}"
     },
     "files": [
-      "dist/**/*",
+      "out/**/*",
       "package.json",
       "!**/node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme,HISTORY.md,CHANGES.md}",
       "!**/node_modules/*/{test,__tests__,tests,powered-test,example,examples,docs,doc}",
