@@ -6,6 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Orbital DB is an Electron-based desktop client for DuckDB databases. It follows a strict process separation model with main process (Node.js + DuckDB), preload script (IPC bridge), and renderer process (React UI).
 
+**Note**: The actual project code is in the `orbital_db/` subdirectory of this repository.
+
 ## Development Commands
 
 ### Running the Application
@@ -46,6 +48,38 @@ npm run package          # Package for current platform
 npm run package:mac      # Package for macOS (dmg, zip)
 npm run package:win      # Package for Windows (nsis, portable)
 npm run package:linux    # Package for Linux (AppImage, deb)
+```
+
+## GitHub Actions CI/CD
+
+The repository includes automated CI/CD workflows in `.github/workflows/`:
+
+### Build Workflow (`build.yml`)
+
+Runs on every push to main and all pull requests:
+
+**Build Matrix**: macOS-latest, Windows-latest, Ubuntu-latest
+**Node Version**: 20 with npm caching
+
+**Pipeline Steps**:
+1. Type checking (`npm run typecheck`)
+2. Linting (`npm run lint`)
+3. Build (`npm run build`)
+4. Platform-specific packaging (`npm run package:mac|win|linux`)
+
+**Artifacts**: Packaged applications uploaded with 7-day retention
+- macOS: DMG + ZIP
+- Windows: NSIS installer + portable EXE
+- Linux: AppImage + DEB (upload step pending)
+
+**Important**: Code signing is disabled for CI builds via `CSC_IDENTITY_AUTO_DISCOVERY: false`
+
+### Running CI Locally
+
+Before pushing, verify CI will pass:
+
+```bash
+npm run typecheck && npm run lint && npm run build
 ```
 
 ## Architecture
@@ -159,6 +193,9 @@ All query execution flows through `DuckDBService.runQuery()`. This ensures:
 ## Build Configuration
 
 - `electron.vite.config.ts` - Main, preload, and renderer build config
+- `tsconfig.json` - Root TypeScript configuration
+- `tsconfig.node.json` - Main process (Node.js) TypeScript config
+- `tsconfig.web.json` - Renderer process (browser/DOM) TypeScript config
 - `@duckdb/node-api` is externalized in main process build
 - Path aliases: `@main`, `@preload`, `@renderer`, `@shared`
 - Native modules are excluded from ASAR via `asarUnpack` in package.json
@@ -173,7 +210,9 @@ All query execution flows through `DuckDBService.runQuery()`. This ensures:
 
 4. **Query Parameters**: UI for parameterized queries is not yet implemented, though the types support it.
 
-## Testing Workflow
+## Manual Testing Workflow
+
+**Note**: No automated test suite exists yet. Testing is currently manual.
 
 1. Start dev server: `npm run dev`
 2. Create an in-memory profile (`:memory:`) or file-based profile
@@ -213,3 +252,9 @@ Can span multiple paragraphs.
 **IPC errors**: Check that channels match between constants, handlers, and preload
 
 **DuckDB connection errors**: Verify profile path exists and has proper permissions
+
+**CI build failures**:
+- Check that all files compile: `npm run typecheck`
+- Verify linting passes: `npm run lint`
+- Test build locally: `npm run build`
+- Ensure native module builds: `npm run postinstall`
