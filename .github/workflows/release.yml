@@ -70,8 +70,8 @@ jobs:
         with:
           files: |
             release/**/*.dmg
-            release/**/*.zip
-            release/**/*.exe
+            release/**/*-mac.zip
+            release/**/Orbital*.Setup.*.exe
             release/**/*.deb
             release/**/*.AppImage
           draft: false
