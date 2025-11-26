@@ -33,7 +33,7 @@ export default function DashboardPage() {
           <p className="text-gray-600 dark:text-gray-400 mb-4">
             DuckDB Glass is a desktop client for managing and querying DuckDB databases.
           </p>
-          <p className="mb-4">You don't have any database profiles yet.</p>
+          <p className="mb-4">You don&apos;t have any database profiles yet.</p>
           <button onClick={() => navigate('/profiles')} className="btn-primary">
             Create Your First Profile
           </button>

@@ -235,7 +235,7 @@ export default function QueryEditor({ profileId }: QueryEditorProps) {
 
       {!result && !error && !loading && (
         <div className="card text-center text-gray-500 py-12">
-          Enter a SQL query and click "Run Query" or press Cmd/Ctrl+Enter to see results
+          Enter a SQL query and click &quot;Run Query&quot; or press Cmd/Ctrl+Enter to see results
         </div>
       )}
     </div>
