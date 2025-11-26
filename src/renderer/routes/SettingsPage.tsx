@@ -10,7 +10,7 @@ export default function SettingsPage() {
   const [version, setVersion] = useState<string>('');
 
   useEffect(() => {
-    window.duckdbGlass.app.getVersion().then(setVersion);
+    window.orbitalDb.app.getVersion().then(setVersion);
   }, []);
 
   const handleThemeToggle = () => {
@@ -42,7 +42,7 @@ export default function SettingsPage() {
               <span className="font-medium">Version:</span> {version || 'Loading...'}
             </div>
             <div>
-              <span className="font-medium">Application:</span> DuckDB Glass
+              <span className="font-medium">Application:</span> Orbital DB
             </div>
             <div>
               <span className="font-medium">Description:</span> Desktop client for DuckDB

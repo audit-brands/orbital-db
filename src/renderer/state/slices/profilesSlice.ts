@@ -19,32 +19,32 @@ const initialState: ProfilesState = {
 
 // Async thunks
 export const loadProfiles = createAsyncThunk('profiles/load', async () => {
-  return await window.duckdbGlass.profiles.list();
+  return await window.orbitalDb.profiles.list();
 });
 
 export const createProfile = createAsyncThunk(
   'profiles/create',
   async (input: DuckDBProfileInput) => {
-    return await window.duckdbGlass.profiles.create(input);
+    return await window.orbitalDb.profiles.create(input);
   }
 );
 
 export const updateProfile = createAsyncThunk(
   'profiles/update',
   async ({ id, update }: { id: string; update: DuckDBProfileUpdate }) => {
-    return await window.duckdbGlass.profiles.update(id, update);
+    return await window.orbitalDb.profiles.update(id, update);
   }
 );
 
 export const deleteProfile = createAsyncThunk('profiles/delete', async (id: string) => {
-  await window.duckdbGlass.profiles.delete(id);
+  await window.orbitalDb.profiles.delete(id);
   return id;
 });
 
 export const openConnection = createAsyncThunk(
   'profiles/openConnection',
   async (profileId: string) => {
-    await window.duckdbGlass.connection.open(profileId);
+    await window.orbitalDb.connection.open(profileId);
     return profileId;
   }
 );
@@ -52,7 +52,7 @@ export const openConnection = createAsyncThunk(
 export const closeConnection = createAsyncThunk(
   'profiles/closeConnection',
   async (profileId: string) => {
-    await window.duckdbGlass.connection.close(profileId);
+    await window.orbitalDb.connection.close(profileId);
     return profileId;
   }
 );

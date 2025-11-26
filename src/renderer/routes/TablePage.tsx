@@ -24,7 +24,7 @@ export default function TablePage() {
 
       try {
         const sql = `SELECT * FROM "${schemaName}"."${tableName}" LIMIT 1000`;
-        const result = await window.duckdbGlass.query.run(profileId, sql);
+        const result = await window.orbitalDb.query.run(profileId, sql);
         setData(result);
       } catch (err) {
         setError((err as Error).message);

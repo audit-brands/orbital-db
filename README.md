@@ -1,8 +1,8 @@
-# DuckDB Glass
+# Orbital DB
 
 A modern desktop client for DuckDB databases, built with Electron, React, and TypeScript.
 
-![DuckDB Glass](https://img.shields.io/badge/DuckDB-FFF000?style=for-the-badge&logo=duckdb&logoColor=black)
+![DuckDB](https://img.shields.io/badge/DuckDB-FFF000?style=for-the-badge&logo=duckdb&logoColor=black)
 ![Electron](https://img.shields.io/badge/Electron-47848F?style=for-the-badge&logo=electron&logoColor=white)
 ![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
 ![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)
@@ -27,8 +27,8 @@ A modern desktop client for DuckDB databases, built with Electron, React, and Ty
 ### Clone the Repository
 
 \`\`\`bash
-git clone https://github.com/yourusername/duckdb_glass.git
-cd duckdb_glass
+git clone https://github.com/yourusername/orbital_db.git
+cd orbital_db
 \`\`\`
 
 ### Install Dependencies
@@ -110,7 +110,7 @@ The packaged application will be in the \`release/\` directory.
 
 ## Architecture
 
-DuckDB Glass follows a strict process separation model:
+Orbital DB follows a strict process separation model:
 
 ### Main Process (\`src/main/\`)
 - **main.ts** - Application lifecycle and window management
@@ -120,7 +120,7 @@ DuckDB Glass follows a strict process separation model:
 
 ### Preload Script (\`src/preload/\`)
 - **preload.ts** - Secure bridge between main and renderer processes
-- Exposes \`window.duckdbGlass\` API to the renderer
+- Exposes \`window.orbitalDb\` API to the renderer
 
 ### Renderer Process (\`src/renderer/\`)
 - **React 18** with hooks
@@ -179,7 +179,7 @@ SELECT * FROM read_parquet('data.parquet');
 ## Project Structure
 
 \`\`\`
-duckdb_glass/
+orbital_db/
 ├── src/
 │   ├── main/               # Electron main process
 │   │   ├── main.ts
@@ -236,9 +236,9 @@ duckdb_glass/
 ### Database Profiles
 
 Profiles are stored in JSON format at:
-- **macOS**: \`~/Library/Application Support/duckdb-glass/profiles.json\`
-- **Windows**: \`%APPDATA%/duckdb-glass/profiles.json\`
-- **Linux**: \`~/.config/duckdb-glass/profiles.json\`
+- **macOS**: \`~/Library/Application Support/orbital-db/profiles.json\`
+- **Windows**: \`%APPDATA%/orbital-db/profiles.json\`
+- **Linux**: \`~/.config/orbital-db/profiles.json\`
 
 ### Settings
 
@@ -288,5 +288,5 @@ For issues, questions, or suggestions:
 
 ---
 
-**DuckDB Glass** - A modern desktop client for DuckDB
+**Orbital DB** - A modern desktop client for DuckDB
 Made with ❤️ and 🦆

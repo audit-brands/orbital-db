@@ -1,4 +1,4 @@
-# DuckDB Glass - Implementation Status
+# Orbital DB - Implementation Status
 
 ## ✅ Completed (Phase 0-3)
 
@@ -34,7 +34,7 @@
 - ✅ **Main Process** - Application lifecycle management with proper cleanup
 
 ### Preload Bridge
-- ✅ **contextBridge API** - Fully typed window.duckdbGlass API
+- ✅ **contextBridge API** - Fully typed window.orbitalDb API
 - ✅ **Type Declarations** - Complete TypeScript definitions for renderer
 
 ### Frontend (Renderer)
@@ -208,7 +208,7 @@
 
 ## 🎉 Summary
 
-This is a **production-ready MVP** of DuckDB Glass. The core functionality is complete and working. Users can:
+This is a **production-ready MVP** of Orbital DB. The core functionality is complete and working. Users can:
 
 1. Manage database profiles
 2. Connect to DuckDB databases

@@ -16,7 +16,7 @@ export default function ProfileForm({ onSubmit, onCancel, initialValues }: Profi
 
   const handleSelectDatabase = async () => {
     try {
-      const result = await window.duckdbGlass.files.selectDatabase();
+      const result = await window.orbitalDb.files.selectDatabase();
       if (result) {
         setDbPath(result);
         setError(null);
@@ -83,28 +83,32 @@ export default function ProfileForm({ onSubmit, onCancel, initialValues }: Profi
             placeholder=":memory: or /path/to/database.duckdb"
             required
           />
-          <button
-            type="button"
-            onClick={handleSelectDatabase}
-            className="btn-secondary whitespace-nowrap"
-          >
-            Browse...
-          </button>
+          {dbPath !== ':memory:' && (
+            <button
+              type="button"
+              onClick={handleSelectDatabase}
+              className="btn-secondary whitespace-nowrap"
+            >
+              Browse...
+            </button>
+          )}
         </div>
         <p className="text-xs text-gray-500 mt-1">
-          Use <code className="bg-gray-100 dark:bg-gray-800 px-1 rounded">:memory:</code> for temporary data, or browse to select/create a <code className="bg-gray-100 dark:bg-gray-800 px-1 rounded">.duckdb</code> file
+          Use <code className="bg-gray-100 dark:bg-gray-800 px-1 rounded">:memory:</code> for temporary data, or specify a <code className="bg-gray-100 dark:bg-gray-800 px-1 rounded">.duckdb</code> file path
         </p>
         {dbPath === ':memory:' && (
-          <div className="mt-2 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded">
+          <div className="mt-2 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded">
             <div className="flex items-start space-x-2">
-              <span className="text-yellow-600 dark:text-yellow-400 text-lg">⚠️</span>
+              <span className="text-blue-600 dark:text-blue-400 text-lg">💡</span>
               <div className="flex-1">
-                <p className="text-sm font-medium text-yellow-800 dark:text-yellow-300 mb-1">
-                  In-Memory Database Warning
+                <p className="text-sm font-medium text-blue-800 dark:text-blue-300 mb-1">
+                  In-Memory Database
+                </p>
+                <p className="text-xs text-blue-700 dark:text-blue-400 mb-2">
+                  Create this profile first, then use the <strong>Import</strong> button to load CSV, Parquet, or JSON files into memory.
                 </p>
                 <p className="text-xs text-yellow-700 dark:text-yellow-400">
-                  All data (tables, views, indexes) will be lost when the app restarts or the connection closes.
-                  To persist your data, edit this profile and change to a file path.
+                  ⚠️ All data will be lost when the connection closes.
                 </p>
               </div>
             </div>

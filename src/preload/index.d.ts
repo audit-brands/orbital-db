@@ -1,4 +1,4 @@
-// Type declarations for window.duckdbGlass API
+// Type declarations for window.orbitalDb API
 
 import {
   DuckDBProfile,
@@ -14,7 +14,7 @@ import {
 
 declare global {
   interface Window {
-    duckdbGlass: {
+    orbitalDb: {
       profiles: {
         list(): Promise<DuckDBProfile[]>;
         create(profile: DuckDBProfileInput): Promise<DuckDBProfile>;

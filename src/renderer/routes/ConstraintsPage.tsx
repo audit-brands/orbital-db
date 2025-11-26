@@ -22,7 +22,7 @@ export default function ConstraintsPage() {
       setError(null);
 
       try {
-        const result = await window.duckdbGlass.constraints.list(
+        const result = await window.orbitalDb.constraints.list(
           profileId,
           schemaName,
           tableName

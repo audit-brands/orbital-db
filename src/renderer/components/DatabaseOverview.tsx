@@ -38,15 +38,15 @@ export default function DatabaseOverview({ profiles }: DatabaseOverviewProps) {
     profiles.forEach(async (profile) => {
       try {
         // Open connection first
-        await window.duckdbGlass.connection.open(profile.id);
+        await window.orbitalDb.connection.open(profile.id);
 
         // Get schemas
-        const schemas = await window.duckdbGlass.schema.listSchemas(profile.id);
+        const schemas = await window.orbitalDb.schema.listSchemas(profile.id);
 
         // Get tables from all schemas
         let totalTables = 0;
         for (const schema of schemas) {
-          const tables = await window.duckdbGlass.schema.listTables(profile.id, schema.schemaName);
+          const tables = await window.orbitalDb.schema.listTables(profile.id, schema.schemaName);
           totalTables += tables.length;
         }
 

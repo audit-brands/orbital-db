@@ -34,7 +34,7 @@ export default function CreateDatabasePage() {
 
   const handleSelectDatabaseLocation = async () => {
     try {
-      const result = await window.duckdbGlass.files.saveDatabaseAs();
+      const result = await window.orbitalDb.files.saveDatabaseAs();
       if (result) {
         setDatabasePath(result);
         // Extract name from path
@@ -49,7 +49,7 @@ export default function CreateDatabasePage() {
 
   const handleSelectDataFiles = async () => {
     try {
-      const result = await window.duckdbGlass.files.selectFile();
+      const result = await window.orbitalDb.files.selectFile();
       if (result) {
         const fileName = result.split('/').pop() || 'file';
         const ext = result.split('.').pop()?.toLowerCase();
@@ -130,7 +130,7 @@ export default function CreateDatabasePage() {
 
       // Step 2: Open connection
       setProgress('Opening database connection...');
-      await window.duckdbGlass.connection.open(profileId);
+      await window.orbitalDb.connection.open(profileId);
 
       // Step 3: Import each file
       for (let i = 0; i < selectedFiles.length; i++) {
@@ -138,7 +138,7 @@ export default function CreateDatabasePage() {
         setProgress(`Importing ${file.fileName} (${i + 1}/${selectedFiles.length})...`);
 
         const sql = generateImportSQL(file);
-        await window.duckdbGlass.query.run(profileId, sql);
+        await window.orbitalDb.query.run(profileId, sql);
       }
 
       setProgress('Database created successfully!');

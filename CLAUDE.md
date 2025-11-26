@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-DuckDB Glass is an Electron-based desktop client for DuckDB databases. It follows a strict process separation model with main process (Node.js + DuckDB), preload script (IPC bridge), and renderer process (React UI).
+Orbital DB is an Electron-based desktop client for DuckDB databases. It follows a strict process separation model with main process (Node.js + DuckDB), preload script (IPC bridge), and renderer process (React UI).
 
 ## Development Commands
 
@@ -62,7 +62,7 @@ The application strictly enforces Electron's process isolation:
 
 **Preload Script** (`src/preload/preload.ts`):
 - Security boundary between main and renderer
-- Exposes typed `window.duckdbGlass` API via `contextBridge`
+- Exposes typed `window.orbitalDb` API via `contextBridge`
 - All renderer-to-main communication must go through this API
 
 **Renderer Process** (`src/renderer/`):
@@ -75,7 +75,7 @@ The application strictly enforces Electron's process isolation:
 
 1. **DuckDB Integration**: The `@duckdb/node-api` module is a native addon that only runs in the main process. It cannot be used in the renderer.
 
-2. **IPC Channel Naming**: All IPC channels follow the pattern `duckdbGlass:category:action` and are defined in `src/shared/constants.ts`.
+2. **IPC Channel Naming**: All IPC channels follow the pattern `orbitalDb:category:action` and are defined in `src/shared/constants.ts`.
 
 3. **Type Safety**: Shared types in `src/shared/types.ts` ensure type consistency across process boundaries.
 
@@ -116,9 +116,9 @@ const rows = reader.getRows();
 ## Profile Management
 
 Profiles are stored at:
-- macOS: `~/Library/Application Support/duckdb-glass/profiles.json`
-- Windows: `%APPDATA%/duckdb-glass/profiles.json`
-- Linux: `~/.config/duckdb-glass/profiles.json`
+- macOS: `~/Library/Application Support/orbital-db/profiles.json`
+- Windows: `%APPDATA%/orbital-db/profiles.json`
+- Linux: `~/.config/orbital-db/profiles.json`
 
 The `ProfileStore` class handles CRUD operations and atomically writes to disk.
 
@@ -129,7 +129,7 @@ Redux Toolkit slices in `src/renderer/state/slices/`:
 - `schemaSlice` - Schema browser state (schemas, tables, columns)
 - `uiSlice` - UI state (theme, active selections, toasts)
 
-Each slice uses RTK Query or async thunks to call `window.duckdbGlass` API.
+Each slice uses RTK Query or async thunks to call `window.orbitalDb` API.
 
 ## Common Development Patterns
 
@@ -140,7 +140,7 @@ Each slice uses RTK Query or async thunks to call `window.duckdbGlass` API.
 3. Add method to DuckDBService if needed
 4. Update preload API in `src/preload/preload.ts`
 5. Update type definitions in `src/preload/index.d.ts`
-6. Use from renderer via `window.duckdbGlass`
+6. Use from renderer via `window.orbitalDb`
 
 ### Adding a New UI Route
 

@@ -44,7 +44,7 @@ export default function QueryEditor({ profileId }: QueryEditorProps) {
     setStatementType(stmtType);
 
     try {
-      const queryResult = await window.duckdbGlass.query.run(profileId, sql);
+      const queryResult = await window.orbitalDb.query.run(profileId, sql);
       setResult(queryResult);
     } catch (err) {
       setError((err as Error).message);
@@ -66,12 +66,12 @@ export default function QueryEditor({ profileId }: QueryEditorProps) {
 
     try {
       // Show save dialog
-      const filePath = await window.duckdbGlass.files.saveCsvAs();
+      const filePath = await window.orbitalDb.files.saveCsvAs();
       if (!filePath) return; // User cancelled
 
       // Use DuckDB's native COPY TO command for memory-efficient export
       // This streams directly to disk without loading all data into memory
-      const rowCount = await window.duckdbGlass.query.exportCsv(profileId, sql, filePath);
+      const rowCount = await window.orbitalDb.query.exportCsv(profileId, sql, filePath);
 
       // Show success feedback
       alert(`Successfully exported ${rowCount.toLocaleString()} rows to ${filePath.split('/').pop()}`);

@@ -1,8 +1,8 @@
-# DuckDB Glass - Development Status
+# Orbital DB - Development Status
 
 ## Implementation Complete ✅
 
-The DuckDB Glass application has been successfully implemented and is ready for testing and deployment.
+The Orbital DB application has been successfully implemented and is ready for testing and deployment.
 
 ### Completed Features
 

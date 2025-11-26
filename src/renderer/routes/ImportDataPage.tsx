@@ -39,7 +39,7 @@ export default function ImportDataPage() {
 
   const handleSelectFile = async () => {
     try {
-      const result = await window.duckdbGlass.files.selectFile();
+      const result = await window.orbitalDb.files.selectFile();
 
       if (result) {
         setSelectedFile(result);
@@ -103,7 +103,7 @@ export default function ImportDataPage() {
     setPreviewSql(sql);
 
     try {
-      await window.duckdbGlass.query.run(profileId, sql);
+      await window.orbitalDb.query.run(profileId, sql);
       setSuccess(true);
       setError(null);
     } catch (err) {

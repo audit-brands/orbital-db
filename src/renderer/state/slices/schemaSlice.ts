@@ -23,14 +23,14 @@ const initialState: SchemaState = {
 export const loadSchemas = createAsyncThunk(
   'schema/loadSchemas',
   async (profileId: string) => {
-    return await window.duckdbGlass.schema.listSchemas(profileId);
+    return await window.orbitalDb.schema.listSchemas(profileId);
   }
 );
 
 export const loadTables = createAsyncThunk(
   'schema/loadTables',
   async ({ profileId, schemaName }: { profileId: string; schemaName: string }) => {
-    const tables = await window.duckdbGlass.schema.listTables(profileId, schemaName);
+    const tables = await window.orbitalDb.schema.listTables(profileId, schemaName);
     return { schemaName, tables };
   }
 );
@@ -46,7 +46,7 @@ export const loadColumns = createAsyncThunk(
     schemaName: string;
     tableName: string;
   }) => {
-    const columns = await window.duckdbGlass.schema.getColumns(profileId, schemaName, tableName);
+    const columns = await window.orbitalDb.schema.getColumns(profileId, schemaName, tableName);
     return { schemaName, tableName, columns };
   }
 );

@@ -21,7 +21,7 @@ function createMainWindow(): void {
       sandbox: true,
       preload: path.join(__dirname, '../preload/preload.js'),
     },
-    title: 'DuckDB Glass',
+    title: 'Orbital DB',
   });
 
   // Load the renderer

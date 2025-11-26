@@ -14,8 +14,8 @@ import type {
   QueryParam,
 } from '../shared/types';
 
-// Expose the DuckDB Glass API to the renderer process
-contextBridge.exposeInMainWorld('duckdbGlass', {
+// Expose the Orbital DB API to the renderer process
+contextBridge.exposeInMainWorld('orbitalDb', {
   profiles: {
     list: (): Promise<DuckDBProfile[]> => ipcRenderer.invoke(IPC_CHANNELS.PROFILES_LIST),
     create: (input: DuckDBProfileInput): Promise<DuckDBProfile> =>
