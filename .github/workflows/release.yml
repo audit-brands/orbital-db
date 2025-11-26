@@ -20,16 +20,10 @@ jobs:
         include:
           - os: macos-latest
             package_script: package:mac
-            artifact_path: release/*/Orbital DB-*.dmg
-            artifact_name: orbital-db-macos
           - os: windows-latest
             package_script: package:win
-            artifact_path: release/*/Orbital DB-*.exe
-            artifact_name: orbital-db-windows
           - os: ubuntu-latest
             package_script: package:linux
-            artifact_path: release/*/orbital-db_*.deb
-            artifact_name: orbital-db-linux
 
     steps:
       - name: Checkout code
@@ -74,7 +68,12 @@ jobs:
       - name: Upload release assets
         uses: softprops/action-gh-release@v1
         with:
-          files: ${{ matrix.artifact_path }}
+          files: |
+            release/**/*.dmg
+            release/**/*.zip
+            release/**/*.exe
+            release/**/*.deb
+            release/**/*.AppImage
           draft: false
           prerelease: false
         env:
