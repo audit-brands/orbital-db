@@ -1,6 +1,7 @@
 // DuckDB Service - manages DuckDB instances and query execution
 
 import { DuckDBInstance, DuckDBConnection } from '@duckdb/node-api';
+import { CONFIG } from './config';
 import type {
   DuckDBProfile,
   QueryResult,
@@ -27,9 +28,15 @@ export class DuckDBService {
     }
 
     try {
-      // Create DuckDB instance
+      // Create DuckDB instance with default configuration from environment
+      // Note: DuckDB configuration is set via PRAGMA statements after connection
       const instance = await DuckDBInstance.create(profile.dbPath);
       const connection = await instance.connect();
+
+      // Configure DuckDB settings from environment defaults
+      // These can be overridden per-connection or via user settings in the future
+      await connection.run(`PRAGMA memory_limit='${CONFIG.duckdb.defaultMemoryLimit}';`);
+      await connection.run(`PRAGMA threads=${CONFIG.duckdb.defaultThreads};`);
 
       // Load extensions if configured
       if (profile.extensions?.length) {
