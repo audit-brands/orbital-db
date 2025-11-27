@@ -289,7 +289,7 @@ export default function ImportDataPage() {
                 Data imported successfully!
               </div>
               <div className="text-sm text-green-600 dark:text-green-400 mt-1">
-                Table "{tableName}" has been created.
+                Table &quot;{tableName}&quot; has been created.
               </div>
               <div className="mt-3 flex space-x-2">
                 <button
