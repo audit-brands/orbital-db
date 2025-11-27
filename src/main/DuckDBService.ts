@@ -304,11 +304,12 @@ export class DuckDBService {
   }
 
   async listTables(profileId: string, schemaName: string): Promise<TableInfo[]> {
-    // Use parameterized query approach to prevent SQL injection
+    // Safely escape schema name to prevent SQL injection
+    const escapedSchema = escapeSqlString(schemaName);
     const sql = `
       SELECT table_schema, table_name, table_type
       FROM information_schema.tables
-      WHERE table_schema = '${schemaName}'
+      WHERE table_schema = '${escapedSchema}'
       ORDER BY table_name;
     `;
     const result = await this.runQuery(profileId, sql);
@@ -324,10 +325,13 @@ export class DuckDBService {
     schemaName: string,
     tableName: string
   ): Promise<ColumnInfo[]> {
+    // Safely escape schema and table names to prevent SQL injection
+    const escapedSchema = escapeSqlString(schemaName);
+    const escapedTable = escapeSqlString(tableName);
     const sql = `
       SELECT column_name, data_type, is_nullable, ordinal_position
       FROM information_schema.columns
-      WHERE table_schema = '${schemaName}' AND table_name = '${tableName}'
+      WHERE table_schema = '${escapedSchema}' AND table_name = '${escapedTable}'
       ORDER BY ordinal_position;
     `;
     const result = await this.runQuery(profileId, sql);
@@ -345,10 +349,13 @@ export class DuckDBService {
     tableName: string
   ): Promise<ConstraintInfo[]> {
     // NOTE: DuckDB's constraint introspection may vary - this is a basic implementation
+    // Safely escape schema and table names to prevent SQL injection
+    const escapedSchema = escapeSqlString(schemaName);
+    const escapedTable = escapeSqlString(tableName);
     const sql = `
       SELECT constraint_name, constraint_type
       FROM information_schema.table_constraints
-      WHERE table_schema = '${schemaName}' AND table_name = '${tableName}';
+      WHERE table_schema = '${escapedSchema}' AND table_name = '${escapedTable}';
     `;
     try {
       const result = await this.runQuery(profileId, sql);
@@ -359,7 +366,7 @@ export class DuckDBService {
       }));
     } catch (error) {
       // If constraints query fails, return empty array (some DuckDB versions may not support this)
-      console.warn(`Failed to list constraints for ${schemaName}.${tableName}:`, error);
+      console.warn(`Failed to list constraints for ${escapedSchema}.${escapedTable}:`, error);
       return [];
     }
   }
@@ -399,6 +406,14 @@ export class DuckDBService {
       }
     });
   }
+}
+
+/**
+ * Safely escapes a SQL string literal by replacing single quotes with two single quotes.
+ * This prevents SQL injection when using user input in WHERE clauses.
+ */
+function escapeSqlString(value: string): string {
+  return value.replace(/'/g, "''");
 }
 
 function trimTrailingSemicolon(sql: string): string {

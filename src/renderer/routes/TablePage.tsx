@@ -7,6 +7,14 @@ import DataGrid from '../components/DataGrid';
 import { useAppDispatch } from '../state/hooks';
 import { acquireConnection, releaseConnection } from '../state/slices/profilesSlice';
 
+/**
+ * Safely escapes a SQL identifier by replacing double quotes with two double quotes.
+ * This prevents SQL injection when using identifiers in queries.
+ */
+function escapeSqlIdentifier(identifier: string): string {
+  return identifier.replace(/"/g, '""');
+}
+
 export default function TablePage() {
   const { profileId, schemaName, tableName } = useParams<{
     profileId: string;
@@ -34,7 +42,10 @@ export default function TablePage() {
       setError(null);
 
       try {
-        const sql = `SELECT * FROM "${schemaName}"."${tableName}" LIMIT 1000`;
+        // Safely escape schema and table names to prevent SQL injection
+        const escapedSchema = escapeSqlIdentifier(schemaName);
+        const escapedTable = escapeSqlIdentifier(tableName);
+        const sql = `SELECT * FROM "${escapedSchema}"."${escapedTable}" LIMIT 1000`;
         const result = await window.orbitalDb.query.run(profileId, sql);
         setData(result);
       } catch (err) {

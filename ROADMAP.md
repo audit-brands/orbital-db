@@ -143,26 +143,95 @@ COMMIT;
 
 ---
 
+## Phase 1.5 - Security Hardening ✅ COMPLETE
+
+### SQL Injection Prevention ✅
+
+**Goal**: Eliminate SQL injection vulnerabilities in metadata queries and user input.
+
+**Security Issues Fixed**:
+- SQL injection in backend metadata queries (`listTables`, `getColumns`, `listConstraints`)
+- SQL injection in frontend TablePage route parameter handling
+- All user-supplied identifiers now properly escaped
+
+**Tasks**:
+- [x] Add `escapeSqlString()` helper function for WHERE clause values
+- [x] Update `listTables()` to escape schema names (DuckDBService.ts:308)
+- [x] Update `getColumns()` to escape schema and table names (DuckDBService.ts:329-330)
+- [x] Update `listConstraints()` to escape schema and table names (DuckDBService.ts:353-354)
+- [x] Add `escapeSqlIdentifier()` to frontend for quoted identifiers (TablePage.tsx:10-16)
+- [x] Escape route parameters in TablePage before SQL construction (TablePage.tsx:46-48)
+
+**Implementation Notes**:
+- `escapeSqlString()` doubles single quotes (SQL standard) for use in WHERE clauses
+- `escapeSqlIdentifier()` doubles double quotes for use in quoted identifiers
+- All user input from renderer is sanitized before SQL construction
+- Codex-reviewed and approved
+
+### File Write Security Audit ✅
+
+**Goal**: Ensure no arbitrary file write primitives are exposed to renderer.
+
+**Status**: Already secure
+- `window.orbitalDb.files.writeFile` API does not exist
+- All file operations require user dialog interaction
+- No arbitrary file write paths exposed
+
+### Read-Only Mode Enforcement ✅
+
+**Goal**: Ensure read-only profiles cannot execute mutations at database level.
+
+**Status**: Already enforced
+- Backend sets `PRAGMA read_only=1;` when opening read-only connections (DuckDBService.ts:65-67)
+- Frontend blocks mutating statements (DML, DDL, TCL) for read-only profiles (QueryEditor.tsx:67-87)
+- Defense-in-depth: both UI and database level protection
+
+### Content Security Policy ✅
+
+**Goal**: Add restrictive CSP to prevent XSS and remote script loading.
+
+**Status**: Already implemented
+- Comprehensive CSP in renderer HTML (src/renderer/index.html:6-9)
+- Blocks remote scripts, inline scripts, and unauthorized origins
+- Allows HMR websockets for development (`ws://localhost:5173`)
+
+**Implementation Summary**:
+All Phase 1 security hardening complete. No critical or medium severity security issues remain from Codex security audit.
+
+---
+
 ## Phase 2: Query Experience Improvements
 
-### Query History & Snippets
+### Query History & Snippets ✅ PARTIALLY COMPLETE
 
 **Goal**: Help users reuse and organize their SQL queries.
 
 **Features**:
-- Persist last N queries per profile (stored in profiles.json or separate history file)
-- Query history panel in Query page
-- Quick re-run and edit buttons for historical queries
-- Saved snippets with friendly names and descriptions
-- Search/filter through query history
+- Persist last N queries per profile (stored in profiles.json) ✅
+- Query history panel with tabbed UI ✅
+- Quick re-run and copy buttons for historical queries ✅
+- Saved snippets with friendly names and descriptions ❌
+- Search/filter through query history ❌
 
 **Tasks**:
-- [ ] Add query history storage (limit to last 50 queries per profile)
-- [ ] Create QueryHistory component with list view
-- [ ] Add timestamp and execution time to history entries
-- [ ] Implement "Run Again" and "Edit" actions
+- [x] Add query history storage (limit to last 50 queries per profile)
+- [x] Create QueryHistory component with list view
+- [x] Add timestamp and execution time to history entries
+- [x] Implement "Run Again" action
+- [x] Add tab-based UI for Results/History
+- [x] Add "Copy" button for quick query reuse
+- [x] Improve SQL statement type classification (SHOW, DESCRIBE, etc. as DQL)
 - [ ] Create SavedSnippets feature for frequently used queries
 - [ ] Add snippet management UI (save, rename, delete, organize)
+- [ ] Add search/filter functionality for history
+
+**Implementation Notes**:
+- Query history persisted in profiles.json with 50-query limit per profile
+- Tab-based UI in QueryEditor.tsx separates Results and History views
+- Copy-to-clipboard with 2-second visual feedback
+- Statement type badges (DQL, DML, DDL, TCL) with color coding
+- History auto-refreshes after query execution
+- Full implementation in QueryHistory.tsx and QueryEditor.tsx
 
 ### Monaco Editor Integration
 
