@@ -114,9 +114,13 @@ export class DuckDBService {
     const start = performance.now();
     const rowLimit = options?.rowLimit ?? CONFIG.results.maxRows;
     const maxExecutionTimeMs = options?.maxExecutionTimeMs ?? CONFIG.results.maxExecutionTimeMs;
+    const enforceLimit = Boolean(options?.enforceResultLimit);
+
+    const { wrappedSql, limitApplied } = maybeWrapQueryWithLimit(sql, rowLimit, enforceLimit);
+    const sqlToExecute = limitApplied ? wrappedSql : sql;
 
     let timer: NodeJS.Timeout | null = null;
-    const basePromise = connection.runAndReadAll(sql);
+    const basePromise = connection.runAndReadAll(sqlToExecute);
     let readerPromise: Promise<Awaited<typeof basePromise>> = basePromise;
     if (maxExecutionTimeMs > 0) {
       basePromise.catch(() => {
@@ -153,9 +157,11 @@ export class DuckDBService {
       const rows = reader.getRows();
       let resultRows = rows;
       let truncated = false;
-      if (rowLimit && rowLimit > 0 && rows.length > rowLimit) {
-        resultRows = rows.slice(0, rowLimit);
-        truncated = true;
+      if (rowLimit && rowLimit > 0) {
+        if (rows.length > rowLimit) {
+          resultRows = rows.slice(0, rowLimit);
+          truncated = true;
+        }
       }
 
       return {
@@ -280,4 +286,46 @@ export class DuckDBService {
       throw error;
     }
   }
+}
+
+function trimTrailingSemicolon(sql: string): string {
+  return sql.replace(/;\s*$/, '').trim();
+}
+
+function isSelectLike(sql: string): boolean {
+  const trimmed = sql.trim();
+  if (!trimmed) {
+    return false;
+  }
+  const sanitized = trimmed.replace(/^\(+/, '').trimStart().toUpperCase();
+  return sanitized.startsWith('SELECT') || sanitized.startsWith('WITH');
+}
+
+function maybeWrapQueryWithLimit(
+  sql: string,
+  rowLimit: number | undefined,
+  enforce: boolean
+): { wrappedSql: string; limitApplied: boolean } {
+  if (!enforce || !rowLimit || rowLimit <= 0) {
+    return { wrappedSql: sql, limitApplied: false };
+  }
+
+  const trimmed = sql.trim();
+  if (!trimmed) {
+    return { wrappedSql: sql, limitApplied: false };
+  }
+
+  const withoutSemicolon = trimTrailingSemicolon(trimmed);
+  if (!isSelectLike(withoutSemicolon)) {
+    return { wrappedSql: sql, limitApplied: false };
+  }
+
+  if (withoutSemicolon.includes(';')) {
+    // Multiple statements detected - do not wrap to avoid altering behavior
+    return { wrappedSql: sql, limitApplied: false };
+  }
+
+  const limitWithSentinel = rowLimit + 1;
+  const wrappedSql = `SELECT * FROM (${withoutSemicolon}) AS orbital_limited_result LIMIT ${limitWithSentinel}`;
+  return { wrappedSql, limitApplied: true };
 }

@@ -70,6 +70,7 @@ export default function QueryEditor({ profileId, isReadOnly = false }: QueryEdit
         {
           rowLimit: DEFAULT_RESULT_LIMIT,
           maxExecutionTimeMs,
+          enforceResultLimit: true,
         }
       );
       setResult(queryResult);

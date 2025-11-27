@@ -55,6 +55,7 @@ export interface ConstraintInfo {
 export interface QueryOptions {
   rowLimit?: number;
   maxExecutionTimeMs?: number;
+  enforceResultLimit?: boolean;
 }
 
 // Standardized IPC response wrapper
