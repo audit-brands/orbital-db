@@ -12,6 +12,7 @@ import {
   QueryParam,
   QueryOptions,
   QueryHistoryEntry,
+  SavedSnippet,
 } from '../shared/types';
 
 declare global {
@@ -50,6 +51,19 @@ declare global {
         add(profileId: string, entry: Omit<QueryHistoryEntry, 'id'>): Promise<QueryHistoryEntry>;
         get(profileId: string): Promise<QueryHistoryEntry[]>;
         clear(profileId: string): Promise<void>;
+      };
+      snippets: {
+        add(
+          profileId: string,
+          snippet: Omit<SavedSnippet, 'id' | 'createdAt' | 'updatedAt'>
+        ): Promise<SavedSnippet>;
+        get(profileId: string): Promise<SavedSnippet[]>;
+        update(
+          profileId: string,
+          snippetId: string,
+          updates: Partial<Pick<SavedSnippet, 'name' | 'description' | 'sql'>>
+        ): Promise<SavedSnippet>;
+        delete(profileId: string, snippetId: string): Promise<void>;
       };
       constraints: {
         list(

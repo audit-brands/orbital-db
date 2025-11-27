@@ -18,6 +18,15 @@ export interface QueryHistoryEntry {
   error?: string; // Error message if query failed
 }
 
+export interface SavedSnippet {
+  id: string;
+  name: string;
+  description?: string;
+  sql: string;
+  createdAt: number; // Unix timestamp in milliseconds
+  updatedAt: number; // Unix timestamp in milliseconds
+}
+
 export interface DuckDBProfile {
   id: string;
   name: string;
@@ -27,6 +36,7 @@ export interface DuckDBProfile {
   extensions?: string[];
   attachedFiles?: AttachedFile[]; // Files attached as queryable tables/views
   queryHistory?: QueryHistoryEntry[]; // Last N queries executed on this profile
+  savedSnippets?: SavedSnippet[]; // User-saved query snippets
   createdAt: string;
   updatedAt: string;
 }

@@ -4,6 +4,8 @@ import { useRef, useState } from 'react';
 import type { QueryResult, StatementType } from '@shared/types';
 import DataGrid from './DataGrid';
 import QueryHistory from './QueryHistory';
+import SavedSnippets from './SavedSnippets';
+import SaveSnippetDialog from './SaveSnippetDialog';
 import { getBaseName } from '../utils/path';
 import { DEFAULT_RESULT_LIMIT, DEFAULT_QUERY_TIMEOUT_MS } from '@shared/constants';
 
@@ -15,7 +17,7 @@ interface QueryEditorProps {
 // Statement types that mutate data (should be blocked in read-only mode)
 const MUTATING_STATEMENT_TYPES = new Set<StatementType>(['DML', 'DDL', 'TCL']);
 
-type TabView = 'results' | 'history';
+type TabView = 'results' | 'history' | 'saved';
 
 export default function QueryEditor({ profileId, isReadOnly = false }: QueryEditorProps) {
   const [sql, setSql] = useState('');
@@ -25,6 +27,8 @@ export default function QueryEditor({ profileId, isReadOnly = false }: QueryEdit
   const [timeoutMs, setTimeoutMs] = useState<string>(`${DEFAULT_QUERY_TIMEOUT_MS}`);
   const [historyRefreshKey, setHistoryRefreshKey] = useState(0);
   const [activeTab, setActiveTab] = useState<TabView>('results');
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [snippetsRefreshKey, setSnippetsRefreshKey] = useState(0);
   const cancelRequestedRef = useRef(false);
   const currentRunRef = useRef<Promise<QueryResult> | null>(null);
 
@@ -201,6 +205,27 @@ export default function QueryEditor({ profileId, isReadOnly = false }: QueryEdit
     setResult(null);
   };
 
+  const handleSaveSnippet = async (name: string, description: string) => {
+    try {
+      if (!window.orbitalDb?.snippets) {
+        console.warn('Snippets API not available');
+        return;
+      }
+
+      await window.orbitalDb.snippets.add(profileId, {
+        name,
+        description: description || undefined,
+        sql: sql.trim(),
+      });
+
+      setShowSaveDialog(false);
+      setSnippetsRefreshKey(prev => prev + 1);
+      setActiveTab('saved');
+    } catch (err) {
+      setError(`Failed to save SQL query: ${(err as Error).message}`);
+    }
+  };
+
   return (
     <div className="flex flex-col h-full space-y-4">
       {/* SQL Editor */}
@@ -221,6 +246,13 @@ export default function QueryEditor({ profileId, isReadOnly = false }: QueryEdit
         <div className="mt-3 flex flex-wrap gap-3 items-center">
           <button onClick={handleRunQuery} disabled={loading} className="btn-primary">
             {loading ? 'Running...' : 'Run Query'}
+          </button>
+          <button
+            onClick={() => setShowSaveDialog(true)}
+            disabled={!sql.trim()}
+            className="btn-secondary"
+          >
+            Save Query
           </button>
           <button
             onClick={() => {
@@ -276,6 +308,16 @@ export default function QueryEditor({ profileId, isReadOnly = false }: QueryEdit
             }`}
           >
             History
+          </button>
+          <button
+            onClick={() => setActiveTab('saved')}
+            className={`px-4 py-2 font-medium text-sm transition-colors ${
+              activeTab === 'saved'
+                ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400'
+                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+            }`}
+          >
+            Saved
           </button>
         </div>
 
@@ -422,7 +464,21 @@ export default function QueryEditor({ profileId, isReadOnly = false }: QueryEdit
         {activeTab === 'history' && (
           <QueryHistory key={historyRefreshKey} profileId={profileId} onSelectQuery={handleSelectHistoryQuery} />
         )}
+
+        {/* Saved Tab */}
+        {activeTab === 'saved' && (
+          <SavedSnippets key={snippetsRefreshKey} profileId={profileId} onSelectQuery={handleSelectHistoryQuery} />
+        )}
       </div>
+
+      {/* Save Snippet Dialog */}
+      {showSaveDialog && (
+        <SaveSnippetDialog
+          sql={sql.trim()}
+          onSave={handleSaveSnippet}
+          onCancel={() => setShowSaveDialog(false)}
+        />
+      )}
     </div>
   );
 }

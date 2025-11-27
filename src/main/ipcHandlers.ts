@@ -1,10 +1,20 @@
 // IPC Handlers - register all IPC communication handlers
 
 import { ipcMain, app, dialog } from 'electron';
-import { IPC_CHANNELS } from '../shared/constants';
+import {
+  IPC_CHANNELS,
+  MAX_SNIPPETS_PER_PROFILE,
+  MAX_SNIPPET_NAME_LENGTH,
+  MAX_SNIPPET_DESCRIPTION_LENGTH,
+} from '../shared/constants';
 import type { DuckDBExecutor } from './DuckDBWorkerClient';
 import type { ProfileStore } from './ProfileStore';
-import type { DuckDBProfileInput, DuckDBProfileUpdate, QueryHistoryEntry } from '../shared/types';
+import type {
+  DuckDBProfileInput,
+  DuckDBProfileUpdate,
+  QueryHistoryEntry,
+  SavedSnippet,
+} from '../shared/types';
 
 const MAX_QUERY_HISTORY_PER_PROFILE = 50;
 
@@ -304,6 +314,188 @@ export function registerIpcHandlers(
       throw error;
     }
   });
+
+  // Saved snippets management
+  ipcMain.handle(
+    IPC_CHANNELS.SNIPPET_ADD,
+    async (_event, profileId: string, snippet: Omit<SavedSnippet, 'id' | 'createdAt' | 'updatedAt'>) => {
+      try {
+        const profile = await profileStore.getProfile(profileId);
+        if (!profile) {
+          throw new Error(`Profile not found: ${profileId}`);
+        }
+
+        // Validate snippet fields
+        if (!snippet.name || typeof snippet.name !== 'string') {
+          throw new Error('Snippet name is required and must be a string');
+        }
+
+        const trimmedName = snippet.name.trim();
+        if (trimmedName.length === 0) {
+          throw new Error('Snippet name cannot be empty');
+        }
+
+        if (trimmedName.length > MAX_SNIPPET_NAME_LENGTH) {
+          throw new Error(`Snippet name cannot exceed ${MAX_SNIPPET_NAME_LENGTH} characters`);
+        }
+
+        if (snippet.description !== undefined && snippet.description !== null) {
+          if (typeof snippet.description !== 'string') {
+            throw new Error('Snippet description must be a string');
+          }
+          if (snippet.description.length > MAX_SNIPPET_DESCRIPTION_LENGTH) {
+            throw new Error(`Snippet description cannot exceed ${MAX_SNIPPET_DESCRIPTION_LENGTH} characters`);
+          }
+        }
+
+        if (!snippet.sql || typeof snippet.sql !== 'string') {
+          throw new Error('Snippet SQL is required and must be a string');
+        }
+
+        if (snippet.sql.trim().length === 0) {
+          throw new Error('Snippet SQL cannot be empty');
+        }
+
+        // Check snippet count limit
+        const snippets = profile.savedSnippets || [];
+        if (snippets.length >= MAX_SNIPPETS_PER_PROFILE) {
+          throw new Error(`Cannot save more than ${MAX_SNIPPETS_PER_PROFILE} snippets per profile`);
+        }
+
+        const now = Date.now();
+        const newSnippet: SavedSnippet = {
+          name: trimmedName,
+          description: snippet.description?.trim() || undefined,
+          sql: snippet.sql.trim(),
+          id: `snippet_${now}_${Math.random().toString(36).substring(7)}`,
+          createdAt: now,
+          updatedAt: now,
+        };
+
+        const updatedSnippets = [...snippets, newSnippet];
+
+        await profileStore.updateProfile(profileId, { savedSnippets: updatedSnippets });
+        return newSnippet;
+      } catch (error) {
+        console.error('Failed to add snippet:', error);
+        throw error;
+      }
+    }
+  );
+
+  ipcMain.handle(IPC_CHANNELS.SNIPPET_GET, async (_event, profileId: string) => {
+    try {
+      const profile = await profileStore.getProfile(profileId);
+      if (!profile) {
+        throw new Error(`Profile not found: ${profileId}`);
+      }
+      return profile.savedSnippets || [];
+    } catch (error) {
+      console.error('Failed to get snippets:', error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle(
+    IPC_CHANNELS.SNIPPET_UPDATE,
+    async (_event, profileId: string, snippetId: string, updates: Partial<Pick<SavedSnippet, 'name' | 'description' | 'sql'>>) => {
+      try {
+        const profile = await profileStore.getProfile(profileId);
+        if (!profile) {
+          throw new Error(`Profile not found: ${profileId}`);
+        }
+
+        // Validate update fields
+        if (updates.name !== undefined) {
+          if (typeof updates.name !== 'string') {
+            throw new Error('Snippet name must be a string');
+          }
+          const trimmedName = updates.name.trim();
+          if (trimmedName.length === 0) {
+            throw new Error('Snippet name cannot be empty');
+          }
+          if (trimmedName.length > MAX_SNIPPET_NAME_LENGTH) {
+            throw new Error(`Snippet name cannot exceed ${MAX_SNIPPET_NAME_LENGTH} characters`);
+          }
+        }
+
+        if (updates.description !== undefined && updates.description !== null) {
+          if (typeof updates.description !== 'string') {
+            throw new Error('Snippet description must be a string');
+          }
+          if (updates.description.length > MAX_SNIPPET_DESCRIPTION_LENGTH) {
+            throw new Error(`Snippet description cannot exceed ${MAX_SNIPPET_DESCRIPTION_LENGTH} characters`);
+          }
+        }
+
+        if (updates.sql !== undefined) {
+          if (typeof updates.sql !== 'string') {
+            throw new Error('Snippet SQL must be a string');
+          }
+          if (updates.sql.trim().length === 0) {
+            throw new Error('Snippet SQL cannot be empty');
+          }
+        }
+
+        const snippets = profile.savedSnippets || [];
+        const snippetIndex = snippets.findIndex(s => s.id === snippetId);
+
+        if (snippetIndex === -1) {
+          throw new Error(`Snippet not found: ${snippetId}`);
+        }
+
+        // Normalize updates by trimming strings
+        const normalizedUpdates: Partial<Pick<SavedSnippet, 'name' | 'description' | 'sql'>> = {};
+        if (updates.name !== undefined) {
+          normalizedUpdates.name = updates.name.trim();
+        }
+        if (updates.description !== undefined) {
+          normalizedUpdates.description = updates.description.trim() || undefined;
+        }
+        if (updates.sql !== undefined) {
+          normalizedUpdates.sql = updates.sql.trim();
+        }
+
+        const updatedSnippet: SavedSnippet = {
+          ...snippets[snippetIndex],
+          ...normalizedUpdates,
+          updatedAt: Date.now(),
+        };
+
+        const updatedSnippets = [
+          ...snippets.slice(0, snippetIndex),
+          updatedSnippet,
+          ...snippets.slice(snippetIndex + 1),
+        ];
+
+        await profileStore.updateProfile(profileId, { savedSnippets: updatedSnippets });
+        return updatedSnippet;
+      } catch (error) {
+        console.error('Failed to update snippet:', error);
+        throw error;
+      }
+    }
+  );
+
+  ipcMain.handle(
+    IPC_CHANNELS.SNIPPET_DELETE,
+    async (_event, profileId: string, snippetId: string) => {
+      try {
+        const profile = await profileStore.getProfile(profileId);
+        if (!profile) {
+          throw new Error(`Profile not found: ${profileId}`);
+        }
+
+        const snippets = profile.savedSnippets || [];
+        const updatedSnippets = snippets.filter(s => s.id !== snippetId);
+
+        await profileStore.updateProfile(profileId, { savedSnippets: updatedSnippets });
+      } catch (error) {
+        console.error('Failed to delete snippet:', error);
+        throw error;
+      }
+    }
+  );
 
   console.log('IPC handlers registered');
 }

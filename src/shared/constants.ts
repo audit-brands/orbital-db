@@ -29,6 +29,12 @@ export const IPC_CHANNELS = {
   QUERY_HISTORY_GET: 'orbitalDb:queryHistory:get',
   QUERY_HISTORY_CLEAR: 'orbitalDb:queryHistory:clear',
 
+  // Saved snippets
+  SNIPPET_ADD: 'orbitalDb:snippet:add',
+  SNIPPET_GET: 'orbitalDb:snippet:get',
+  SNIPPET_UPDATE: 'orbitalDb:snippet:update',
+  SNIPPET_DELETE: 'orbitalDb:snippet:delete',
+
   // File dialogs
   DIALOG_OPEN_DATABASE: 'orbitalDb:dialog:openDatabase',
   DIALOG_SAVE_DATABASE: 'orbitalDb:dialog:saveDatabase',
@@ -41,3 +47,8 @@ export const IPC_CHANNELS = {
 
 export const DEFAULT_RESULT_LIMIT = 1000;
 export const DEFAULT_QUERY_TIMEOUT_MS = 60000;
+
+// Saved snippets limits
+export const MAX_SNIPPETS_PER_PROFILE = 100;
+export const MAX_SNIPPET_NAME_LENGTH = 200;
+export const MAX_SNIPPET_DESCRIPTION_LENGTH = 1000;

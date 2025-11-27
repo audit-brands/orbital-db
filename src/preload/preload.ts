@@ -14,6 +14,7 @@ import type {
   QueryParam,
   QueryOptions,
   QueryHistoryEntry,
+  SavedSnippet,
 } from '../shared/types';
 
 // Expose the Orbital DB API to the renderer process
@@ -66,6 +67,23 @@ contextBridge.exposeInMainWorld('orbitalDb', {
       ipcRenderer.invoke(IPC_CHANNELS.QUERY_HISTORY_GET, profileId),
     clear: (profileId: string): Promise<void> =>
       ipcRenderer.invoke(IPC_CHANNELS.QUERY_HISTORY_CLEAR, profileId),
+  },
+  snippets: {
+    add: (
+      profileId: string,
+      snippet: Omit<SavedSnippet, 'id' | 'createdAt' | 'updatedAt'>
+    ): Promise<SavedSnippet> =>
+      ipcRenderer.invoke(IPC_CHANNELS.SNIPPET_ADD, profileId, snippet),
+    get: (profileId: string): Promise<SavedSnippet[]> =>
+      ipcRenderer.invoke(IPC_CHANNELS.SNIPPET_GET, profileId),
+    update: (
+      profileId: string,
+      snippetId: string,
+      updates: Partial<Pick<SavedSnippet, 'name' | 'description' | 'sql'>>
+    ): Promise<SavedSnippet> =>
+      ipcRenderer.invoke(IPC_CHANNELS.SNIPPET_UPDATE, profileId, snippetId, updates),
+    delete: (profileId: string, snippetId: string): Promise<void> =>
+      ipcRenderer.invoke(IPC_CHANNELS.SNIPPET_DELETE, profileId, snippetId),
   },
   constraints: {
     list: (
