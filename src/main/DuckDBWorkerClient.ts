@@ -13,6 +13,7 @@ type WorkerMethod =
   | 'openConnection'
   | 'closeConnection'
   | 'closeAllConnections'
+  | 'interruptQuery'
   | 'runQuery'
   | 'listSchemas'
   | 'listTables'
@@ -44,6 +45,7 @@ export interface DuckDBExecutor {
   openConnection(profile: DuckDBProfile): Promise<void>;
   closeConnection(profileId: string): Promise<void>;
   closeAllConnections(): Promise<void>;
+  interruptQuery(profileId: string): Promise<void>;
   runQuery(profileId: string, sql: string, options?: QueryOptions): Promise<QueryResult>;
   listSchemas(profileId: string): Promise<SchemaInfo[]>;
   listTables(profileId: string, schemaName: string): Promise<TableInfo[]>;
@@ -116,6 +118,10 @@ export class DuckDBWorkerClient implements DuckDBExecutor {
 
   closeAllConnections(): Promise<void> {
     return this.call<void>('closeAllConnections');
+  }
+
+  interruptQuery(profileId: string): Promise<void> {
+    return this.call<void>('interruptQuery', profileId);
   }
 
   runQuery(profileId: string, sql: string, options?: QueryOptions): Promise<QueryResult> {

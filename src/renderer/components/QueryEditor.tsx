@@ -1,6 +1,6 @@
 // Query Editor component for running custom SQL
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import type { QueryResult } from '@shared/types';
 import DataGrid from './DataGrid';
 import { getBaseName } from '../utils/path';
@@ -34,6 +34,7 @@ export default function QueryEditor({ profileId, isReadOnly = false }: QueryEdit
   const [error, setError] = useState<string | null>(null);
   const [statementType, setStatementType] = useState<string>('SELECT');
   const [timeoutMs, setTimeoutMs] = useState<string>(`${DEFAULT_QUERY_TIMEOUT_MS}`);
+  const cancelRequestedRef = useRef(false);
 
   const handleRunQuery = async () => {
     const trimmed = sql.trim();
@@ -52,6 +53,7 @@ export default function QueryEditor({ profileId, isReadOnly = false }: QueryEdit
       return;
     }
 
+    cancelRequestedRef.current = false;
     setLoading(true);
     setError(null);
     setResult(null);
@@ -72,9 +74,25 @@ export default function QueryEditor({ profileId, isReadOnly = false }: QueryEdit
       );
       setResult(queryResult);
     } catch (err) {
-      setError((err as Error).message);
+      if (cancelRequestedRef.current) {
+        setError('Query cancelled by user');
+      } else {
+        setError((err as Error).message);
+      }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleCancelQuery = async () => {
+    if (!loading) {
+      return;
+    }
+    cancelRequestedRef.current = true;
+    try {
+      await window.orbitalDb.query.cancel(profileId);
+    } catch (err) {
+      console.error('Failed to cancel query:', err);
     }
   };
 
@@ -136,6 +154,13 @@ export default function QueryEditor({ profileId, isReadOnly = false }: QueryEdit
             className="btn-secondary"
           >
             Clear
+          </button>
+          <button
+            onClick={handleCancelQuery}
+            disabled={!loading}
+            className="btn-secondary"
+          >
+            Cancel Query
           </button>
           <label className="flex items-center space-x-2 text-xs text-gray-600 dark:text-gray-400">
             <span>Timeout (ms)</span>

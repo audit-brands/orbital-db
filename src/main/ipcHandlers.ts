@@ -138,6 +138,15 @@ export function registerIpcHandlers(
     }
   );
 
+  ipcMain.handle(IPC_CHANNELS.QUERY_CANCEL, async (_event, profileId: string) => {
+    try {
+      await duckdbService.interruptQuery(profileId);
+    } catch (error) {
+      console.error('Failed to cancel query:', error);
+      throw error;
+    }
+  });
+
   ipcMain.handle(
     IPC_CHANNELS.QUERY_EXPORT_CSV,
     async (_event, profileId: string, sql: string, filePath: string) => {

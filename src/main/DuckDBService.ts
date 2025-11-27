@@ -85,6 +85,20 @@ export class DuckDBService {
     await Promise.all(closePromises);
   }
 
+  async interruptQuery(profileId: string): Promise<void> {
+    const entry = this.connections.get(profileId);
+    if (!entry) {
+      console.warn(`No connection found to interrupt for profile: ${profileId}`);
+      return;
+    }
+    try {
+      entry.connection.interrupt();
+    } catch (error) {
+      console.error(`Failed to interrupt query for profile ${profileId}:`, error);
+      throw error;
+    }
+  }
+
   private getConnectionOrThrow(profileId: string): DuckDBConnection {
     const entry = this.connections.get(profileId);
     if (!entry) {

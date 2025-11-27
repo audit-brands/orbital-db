@@ -43,6 +43,7 @@ declare global {
           options?: QueryOptions
         ): Promise<QueryResult>;
         exportCsv(profileId: string, sql: string, filePath: string): Promise<number>;
+        cancel(profileId: string): Promise<void>;
       };
       constraints: {
         list(
