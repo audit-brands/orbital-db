@@ -8,11 +8,21 @@ interface QueryHistoryProps {
   onSelectQuery: (sql: string) => void;
 }
 
+async function copyToClipboard(text: string): Promise<void> {
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch (err) {
+    console.error('Failed to copy to clipboard:', err);
+    throw err;
+  }
+}
+
 export default function QueryHistory({ profileId, onSelectQuery }: QueryHistoryProps) {
   const [history, setHistory] = useState<QueryHistoryEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const loadHistory = useCallback(async () => {
     try {
@@ -54,6 +64,16 @@ export default function QueryHistory({ profileId, onSelectQuery }: QueryHistoryP
       setHistory([]);
     } catch (err) {
       setError((err as Error).message);
+    }
+  };
+
+  const handleCopy = async (entry: QueryHistoryEntry) => {
+    try {
+      await copyToClipboard(entry.sql);
+      setCopiedId(entry.id);
+      setTimeout(() => setCopiedId(null), 2000); // Clear after 2 seconds
+    } catch (err) {
+      console.error('Failed to copy:', err);
     }
   };
 
@@ -174,12 +194,20 @@ export default function QueryHistory({ profileId, onSelectQuery }: QueryHistoryP
                   <span className="text-red-600 dark:text-red-400">{entry.error}</span>
                 )}
               </div>
-              <button
-                onClick={() => onSelectQuery(entry.sql)}
-                className="text-xs btn-secondary px-2 py-1"
-              >
-                Run Again
-              </button>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => handleCopy(entry)}
+                  className="text-xs btn-secondary px-2 py-1"
+                >
+                  {copiedId === entry.id ? '✓ Copied!' : 'Copy'}
+                </button>
+                <button
+                  onClick={() => onSelectQuery(entry.sql)}
+                  className="text-xs btn-secondary px-2 py-1"
+                >
+                  Run Again
+                </button>
+              </div>
             </div>
           </div>
         ))}

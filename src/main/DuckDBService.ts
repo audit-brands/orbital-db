@@ -409,8 +409,13 @@ function detectStatementType(sql: string): StatementType {
   const trimmed = sql.trim().toUpperCase();
   const firstWord = trimmed.split(/\s+/)[0];
 
-  // DQL - Data Query Language
+  // DQL - Data Query Language (including utility commands that query metadata)
   if (firstWord === 'SELECT' || firstWord === 'WITH' || trimmed.startsWith('(SELECT')) {
+    return 'DQL';
+  }
+
+  // Utility/metadata commands - treat as DQL since they query information
+  if (['SHOW', 'DESCRIBE', 'DESC', 'EXPLAIN', 'SUMMARIZE', 'PRAGMA'].includes(firstWord)) {
     return 'DQL';
   }
 

@@ -15,12 +15,16 @@ interface QueryEditorProps {
 // Statement types that mutate data (should be blocked in read-only mode)
 const MUTATING_STATEMENT_TYPES = new Set<StatementType>(['DML', 'DDL', 'TCL']);
 
+type TabView = 'results' | 'history';
+
 export default function QueryEditor({ profileId, isReadOnly = false }: QueryEditorProps) {
   const [sql, setSql] = useState('');
   const [result, setResult] = useState<QueryResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [timeoutMs, setTimeoutMs] = useState<string>(`${DEFAULT_QUERY_TIMEOUT_MS}`);
+  const [historyRefreshKey, setHistoryRefreshKey] = useState(0);
+  const [activeTab, setActiveTab] = useState<TabView>('results');
   const cancelRequestedRef = useRef(false);
   const currentRunRef = useRef<Promise<QueryResult> | null>(null);
 
@@ -93,6 +97,10 @@ export default function QueryEditor({ profileId, isReadOnly = false }: QueryEdit
             rowCount: queryResult.rowCount,
             statementType: queryResult.statementType,
             success: true,
+          }).then(() => {
+            // Trigger history refresh and switch to results tab
+            setHistoryRefreshKey(prev => prev + 1);
+            setActiveTab('results');
           }).catch(err => {
             console.error('Failed to record query history:', err);
           });
@@ -246,15 +254,42 @@ export default function QueryEditor({ profileId, isReadOnly = false }: QueryEdit
         </div>
       </div>
 
-      {/* Results */}
-      {error && (
-        <div className="card bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800">
-          <div className="text-red-700 dark:text-red-400 font-medium mb-1">Error</div>
-          <div className="text-sm text-red-600 dark:text-red-300 font-mono">{error}</div>
+      {/* Tabs */}
+      <div className="card">
+        <div className="flex border-b border-gray-200 dark:border-gray-700 mb-4">
+          <button
+            onClick={() => setActiveTab('results')}
+            className={`px-4 py-2 font-medium text-sm transition-colors ${
+              activeTab === 'results'
+                ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400'
+                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+            }`}
+          >
+            Results
+          </button>
+          <button
+            onClick={() => setActiveTab('history')}
+            className={`px-4 py-2 font-medium text-sm transition-colors ${
+              activeTab === 'history'
+                ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400'
+                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+            }`}
+          >
+            History
+          </button>
         </div>
-      )}
 
-      {result && (
+        {/* Results Tab */}
+        {activeTab === 'results' && (
+          <>
+            {error && (
+              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded p-4 mb-4">
+                <div className="text-red-700 dark:text-red-400 font-medium mb-1">Error</div>
+                <div className="text-sm text-red-600 dark:text-red-300 font-mono">{error}</div>
+              </div>
+            )}
+
+            {result && (
         <div className="card flex-1">
           <div className="mb-4 flex justify-between items-center">
             <h3 className="text-lg font-semibold">Results</h3>
@@ -375,14 +410,19 @@ export default function QueryEditor({ profileId, isReadOnly = false }: QueryEdit
         </div>
       )}
 
-      {!result && !error && !loading && (
-        <div className="card text-center text-gray-500 py-12">
-          Enter a SQL query and click &quot;Run Query&quot; or press Cmd/Ctrl+Enter to see results
-        </div>
-      )}
+            {!result && !error && !loading && (
+              <div className="text-center text-gray-500 py-12">
+                Enter a SQL query and click &quot;Run Query&quot; or press Cmd/Ctrl+Enter to see results
+              </div>
+            )}
+          </>
+        )}
 
-      {/* Query History */}
-      <QueryHistory profileId={profileId} onSelectQuery={handleSelectHistoryQuery} />
+        {/* History Tab */}
+        {activeTab === 'history' && (
+          <QueryHistory key={historyRefreshKey} profileId={profileId} onSelectQuery={handleSelectHistoryQuery} />
+        )}
+      </div>
     </div>
   );
 }
