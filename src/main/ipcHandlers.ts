@@ -2,12 +2,12 @@
 
 import { ipcMain, app, dialog } from 'electron';
 import { IPC_CHANNELS } from '../shared/constants';
-import type { DuckDBService } from './DuckDBService';
+import type { DuckDBExecutor } from './DuckDBWorkerClient';
 import type { ProfileStore } from './ProfileStore';
 import type { DuckDBProfileInput, DuckDBProfileUpdate } from '../shared/types';
 
 export function registerIpcHandlers(
-  duckdbService: DuckDBService,
+  duckdbService: DuckDBExecutor,
   profileStore: ProfileStore
 ): void {
   // App metadata

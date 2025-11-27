@@ -2,13 +2,13 @@
 
 import { app, BrowserWindow } from 'electron';
 import path from 'path';
-import { DuckDBService } from './DuckDBService';
+import { DuckDBWorkerClient } from './DuckDBWorkerClient';
 import { ProfileStore } from './ProfileStore';
 import { registerIpcHandlers } from './ipcHandlers';
 
 // Initialize services
 let mainWindow: BrowserWindow | null = null;
-const duckdbService = new DuckDBService();
+const duckdbService = new DuckDBWorkerClient();
 const profileStore = new ProfileStore();
 
 function createMainWindow(): void {
@@ -59,6 +59,5 @@ app.on('window-all-closed', () => {
 });
 
 app.on('before-quit', async () => {
-  // Close all DuckDB connections gracefully
-  await duckdbService.closeAllConnections();
+  await duckdbService.destroy();
 });
