@@ -1,7 +1,7 @@
 // Query Editor component for running custom SQL
 
 import { useRef, useState } from 'react';
-import type { QueryResult } from '@shared/types';
+import type { QueryResult, StatementType } from '@shared/types';
 import DataGrid from './DataGrid';
 import { getBaseName } from '../utils/path';
 import { DEFAULT_RESULT_LIMIT, DEFAULT_QUERY_TIMEOUT_MS } from '@shared/constants';
@@ -11,28 +11,14 @@ interface QueryEditorProps {
   isReadOnly?: boolean;
 }
 
-const MUTATING_STATEMENTS = new Set(['INSERT', 'UPDATE', 'DELETE', 'CREATE', 'ALTER', 'DROP', 'TRANSACTION']);
-
-// Detect SQL statement type
-function detectStatementType(sql: string): 'SELECT' | 'INSERT' | 'UPDATE' | 'DELETE' | 'CREATE' | 'ALTER' | 'DROP' | 'TRANSACTION' | 'OTHER' {
-  const trimmed = sql.trim().toUpperCase();
-  if (trimmed.startsWith('SELECT') || trimmed.startsWith('WITH')) return 'SELECT';
-  if (trimmed.startsWith('INSERT')) return 'INSERT';
-  if (trimmed.startsWith('UPDATE')) return 'UPDATE';
-  if (trimmed.startsWith('DELETE')) return 'DELETE';
-  if (trimmed.startsWith('CREATE')) return 'CREATE';
-  if (trimmed.startsWith('ALTER')) return 'ALTER';
-  if (trimmed.startsWith('DROP')) return 'DROP';
-  if (trimmed.startsWith('BEGIN') || trimmed.startsWith('COMMIT') || trimmed.startsWith('ROLLBACK')) return 'TRANSACTION';
-  return 'OTHER';
-}
+// Statement types that mutate data (should be blocked in read-only mode)
+const MUTATING_STATEMENT_TYPES = new Set<StatementType>(['DML', 'DDL', 'TCL']);
 
 export default function QueryEditor({ profileId, isReadOnly = false }: QueryEditorProps) {
   const [sql, setSql] = useState('');
   const [result, setResult] = useState<QueryResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [statementType, setStatementType] = useState<string>('SELECT');
   const [timeoutMs, setTimeoutMs] = useState<string>(`${DEFAULT_QUERY_TIMEOUT_MS}`);
   const cancelRequestedRef = useRef(false);
   const currentRunRef = useRef<Promise<QueryResult> | null>(null);
@@ -41,16 +27,6 @@ export default function QueryEditor({ profileId, isReadOnly = false }: QueryEdit
     const trimmed = sql.trim();
     if (!trimmed) {
       setError('Please enter a SQL query');
-      return;
-    }
-
-    // Detect statement type
-    const stmtType = detectStatementType(trimmed);
-    setStatementType(stmtType);
-
-    if (isReadOnly && MUTATING_STATEMENTS.has(stmtType)) {
-      setError('This profile is read-only. Only SELECT and other read-only statements are allowed.');
-      setResult(null);
       return;
     }
 
@@ -81,6 +57,14 @@ export default function QueryEditor({ profileId, isReadOnly = false }: QueryEdit
         if (cancelRequestedRef.current || currentRunRef.current !== runPromise) {
           return;
         }
+
+        // Check read-only enforcement using backend's statement classification
+        if (isReadOnly && queryResult.statementType && MUTATING_STATEMENT_TYPES.has(queryResult.statementType)) {
+          setError(`This profile is read-only. ${queryResult.statementType} statements are not allowed.`);
+          setResult(null);
+          return;
+        }
+
         setResult(queryResult);
       })
       .catch((err) => {
@@ -222,8 +206,8 @@ export default function QueryEditor({ profileId, isReadOnly = false }: QueryEdit
             </div>
           </div>
 
-          {/* For SELECT queries with data */}
-          {statementType === 'SELECT' && result.rowCount > 0 && (
+          {/* For DQL queries (SELECT, WITH, etc.) with data */}
+          {result.statementType === 'DQL' && result.rowCount > 0 && (
             <>
               <div className="mb-3 text-sm text-gray-600 dark:text-gray-400">
                 {result.rowCount} row{result.rowCount !== 1 ? 's' : ''} returned
@@ -237,21 +221,21 @@ export default function QueryEditor({ profileId, isReadOnly = false }: QueryEdit
             </>
           )}
 
-          {/* For SELECT queries with no data */}
-          {statementType === 'SELECT' && result.rowCount === 0 && (
+          {/* For DQL queries with no data */}
+          {result.statementType === 'DQL' && result.rowCount === 0 && (
             <div className="text-center py-8 text-gray-500">
               Query executed successfully. No rows returned.
             </div>
           )}
 
-          {/* For DDL statements (CREATE, ALTER, DROP) */}
-          {(statementType === 'CREATE' || statementType === 'ALTER' || statementType === 'DROP') && (
+          {/* For DDL statements (CREATE, ALTER, DROP, etc.) */}
+          {result.statementType === 'DDL' && (
             <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
               <div className="flex items-center space-x-2">
                 <span className="text-green-600 dark:text-green-400 text-2xl">✓</span>
                 <div>
                   <div className="font-medium text-green-700 dark:text-green-300">
-                    {statementType} statement executed successfully
+                    DDL statement executed successfully
                   </div>
                   <div className="text-sm text-green-600 dark:text-green-400 mt-1">
                     Schema changes have been applied
@@ -261,17 +245,19 @@ export default function QueryEditor({ profileId, isReadOnly = false }: QueryEdit
             </div>
           )}
 
-          {/* For DML statements (INSERT, UPDATE, DELETE) */}
-          {(statementType === 'INSERT' || statementType === 'UPDATE' || statementType === 'DELETE') && (
+          {/* For DML statements (INSERT, UPDATE, DELETE, MERGE) */}
+          {result.statementType === 'DML' && (
             <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
               <div className="flex items-center space-x-2">
                 <span className="text-blue-600 dark:text-blue-400 text-2xl">✓</span>
                 <div>
                   <div className="font-medium text-blue-700 dark:text-blue-300">
-                    {statementType} statement executed successfully
+                    DML statement executed successfully
                   </div>
                   <div className="text-sm text-blue-600 dark:text-blue-400 mt-1">
-                    {result.rowCount > 0
+                    {result.affectedRows !== undefined
+                      ? `${result.affectedRows} row${result.affectedRows !== 1 ? 's' : ''} affected`
+                      : result.rowCount > 0
                       ? `${result.rowCount} row${result.rowCount !== 1 ? 's' : ''} affected`
                       : 'No rows affected'}
                   </div>
@@ -280,8 +266,8 @@ export default function QueryEditor({ profileId, isReadOnly = false }: QueryEdit
             </div>
           )}
 
-          {/* For TRANSACTION statements */}
-          {statementType === 'TRANSACTION' && (
+          {/* For TCL statements (BEGIN, COMMIT, ROLLBACK, etc.) */}
+          {result.statementType === 'TCL' && (
             <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg p-4">
               <div className="flex items-center space-x-2">
                 <span className="text-purple-600 dark:text-purple-400 text-2xl">✓</span>
@@ -294,8 +280,8 @@ export default function QueryEditor({ profileId, isReadOnly = false }: QueryEdit
             </div>
           )}
 
-          {/* For OTHER statements */}
-          {statementType === 'OTHER' && (
+          {/* For UNKNOWN/OTHER statements */}
+          {(!result.statementType || result.statementType === 'UNKNOWN') && (
             <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
               <div className="flex items-center space-x-2">
                 <span className="text-gray-600 dark:text-gray-400 text-2xl">✓</span>

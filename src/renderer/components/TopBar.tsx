@@ -47,9 +47,17 @@ export default function TopBar() {
             >
               <span className={`w-2 h-2 rounded-full ${statusStyles.dot}`}></span>
               <div className="flex flex-col leading-tight">
-                <span className="font-medium">
-                  {statusStyles.label}: {activeProfile.name}
-                </span>
+                <div className="flex items-center space-x-2">
+                  <span className="font-medium">
+                    {statusStyles.label}: {activeProfile.name}
+                  </span>
+                  <span
+                    title={activeProfile.dbPath === ':memory:' ? 'In-memory database (data lost on disconnect)' : 'File-based database (changes persist to disk)'}
+                    className="text-base"
+                  >
+                    {activeProfile.dbPath === ':memory:' ? '🧠' : '💾'}
+                  </span>
+                </div>
                 {error && (
                   <span className="text-xs opacity-80">
                     {error}

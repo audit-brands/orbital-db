@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { DuckDBProfile } from '@shared/types';
+import { useAppDispatch } from '../state/hooks';
+import { acquireConnection, releaseConnection } from '../state/slices/profilesSlice';
 
 interface DatabaseStats {
   profileId: string;
@@ -18,6 +20,7 @@ interface DatabaseOverviewProps {
 
 export default function DatabaseOverview({ profiles }: DatabaseOverviewProps) {
   const navigate = useNavigate();
+  const dispatch = useAppDispatch();
   const [stats, setStats] = useState<Map<string, DatabaseStats>>(new Map());
 
   useEffect(() => {
@@ -34,17 +37,49 @@ export default function DatabaseOverview({ profiles }: DatabaseOverviewProps) {
     });
     setStats(initialStats);
 
-    // Fetch stats for each profile
-    profiles.forEach(async (profile) => {
-      try {
-        await window.orbitalDb.connection.open(profile.id);
+    // Track which profiles have had their connections acquired
+    const acquiredConnections = new Set<string>();
+    // Track cancellation
+    let cancelled = false;
+
+    // Fetch stats for each profile using reference-counted connections
+    profiles.forEach((profile) => {
+      (async () => {
         try {
+          // Use reference-counted connection management
+          await dispatch(acquireConnection(profile.id)).unwrap();
+
+          // Track that we acquired this connection
+          if (!cancelled) {
+            acquiredConnections.add(profile.id);
+          }
+
+          // If already cancelled, release immediately and return
+          if (cancelled) {
+            dispatch(releaseConnection(profile.id));
+            return;
+          }
+
           const schemas = await window.orbitalDb.schema.listSchemas(profile.id);
+
+          if (cancelled) {
+            dispatch(releaseConnection(profile.id));
+            return;
+          }
 
           let totalTables = 0;
           for (const schema of schemas) {
+            if (cancelled) {
+              dispatch(releaseConnection(profile.id));
+              return;
+            }
             const tables = await window.orbitalDb.schema.listTables(profile.id, schema.schemaName);
             totalTables += tables.length;
+          }
+
+          if (cancelled) {
+            dispatch(releaseConnection(profile.id));
+            return;
           }
 
           setStats((prev) => {
@@ -58,28 +93,39 @@ export default function DatabaseOverview({ profiles }: DatabaseOverviewProps) {
             });
             return updated;
           });
+        } catch (error) {
+          if (!cancelled) {
+            setStats((prev) => {
+              const updated = new Map(prev);
+              updated.set(profile.id, {
+                profileId: profile.id,
+                tableCount: 0,
+                schemaCount: 0,
+                loading: false,
+                error: (error as Error).message,
+              });
+              return updated;
+            });
+          }
         } finally {
-          try {
-            await window.orbitalDb.connection.close(profile.id);
-          } catch (closeError) {
-            console.warn(`Failed to close connection for profile ${profile.id}`, closeError);
+          // Always release the connection when done (only if we acquired it)
+          if (acquiredConnections.has(profile.id)) {
+            dispatch(releaseConnection(profile.id));
+            acquiredConnections.delete(profile.id);
           }
         }
-      } catch (error) {
-        setStats((prev) => {
-          const updated = new Map(prev);
-          updated.set(profile.id, {
-            profileId: profile.id,
-            tableCount: 0,
-            schemaCount: 0,
-            loading: false,
-            error: (error as Error).message,
-          });
-          return updated;
-        });
-      }
+      })();
     });
-  }, [profiles]);
+
+    // Cleanup: mark as cancelled and release any connections that were acquired
+    return () => {
+      cancelled = true;
+      // Only release connections we actually acquired
+      acquiredConnections.forEach((profileId) => {
+        dispatch(releaseConnection(profileId));
+      });
+    };
+  }, [profiles, dispatch]);
 
   if (profiles.length === 0) {
     return null;

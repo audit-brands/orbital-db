@@ -45,12 +45,16 @@ export interface QueryParam {
   value: unknown;
 }
 
+export type StatementType = 'DQL' | 'DML' | 'DDL' | 'TCL' | 'UNKNOWN';
+
 export interface QueryResult {
   columns: { name: string; dataType: string }[];
   rows: unknown[][];
   rowCount: number;
   executionTimeMs: number;
   truncated?: boolean;
+  statementType?: StatementType;
+  affectedRows?: number; // For DML operations (INSERT, UPDATE, DELETE)
 }
 
 export interface ConstraintInfo {

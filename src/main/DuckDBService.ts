@@ -11,6 +11,7 @@ import type {
   ConstraintInfo,
   QueryOptions,
   AttachedFile,
+  StatementType,
 } from '../shared/types';
 
 interface OpenConnection {
@@ -270,12 +271,20 @@ export class DuckDBService {
           }
         }
 
+        const statementType = detectStatementType(sql);
+
+        // For DML operations, rowCount represents affected rows
+        // For DQL operations, rowCount represents returned rows
+        const affectedRows = statementType === 'DML' ? resultRows.length : undefined;
+
         return {
           columns,
           rows: resultRows,
           rowCount: resultRows.length,
           executionTimeMs,
           truncated,
+          statementType,
+          affectedRows,
         };
       } catch (error) {
         console.error(`Query execution failed for profile ${profileId}:`, error);
@@ -394,6 +403,36 @@ export class DuckDBService {
 
 function trimTrailingSemicolon(sql: string): string {
   return sql.replace(/;\s*$/, '').trim();
+}
+
+function detectStatementType(sql: string): StatementType {
+  const trimmed = sql.trim().toUpperCase();
+  const firstWord = trimmed.split(/\s+/)[0];
+
+  // DQL - Data Query Language
+  if (firstWord === 'SELECT' || firstWord === 'WITH' || trimmed.startsWith('(SELECT')) {
+    return 'DQL';
+  }
+
+  // DML - Data Manipulation Language
+  if (['INSERT', 'UPDATE', 'DELETE', 'MERGE'].includes(firstWord)) {
+    return 'DML';
+  }
+
+  // DDL - Data Definition Language
+  if ([
+    'CREATE', 'ALTER', 'DROP', 'TRUNCATE', 'RENAME',
+    'COMMENT', 'VACUUM', 'ANALYZE'
+  ].includes(firstWord)) {
+    return 'DDL';
+  }
+
+  // TCL - Transaction Control Language
+  if (['BEGIN', 'COMMIT', 'ROLLBACK', 'SAVEPOINT', 'START'].includes(firstWord)) {
+    return 'TCL';
+  }
+
+  return 'UNKNOWN';
 }
 
 function isSelectLike(sql: string): boolean {
