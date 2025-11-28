@@ -329,7 +329,6 @@ MIT License - see LICENSE file for details
 ## Acknowledgments
 
 - Built with the official [@duckdb/node-api](https://www.npmjs.com/package/@duckdb/node-api)
-- Inspired by [DBGlass](https://github.com/web-pal/DBGlass) for PostgreSQL
 - DuckDB logo and branding by [DuckDB Foundation](https://duckdb.org/)
 
 ## Support

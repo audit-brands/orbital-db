@@ -25,13 +25,13 @@ export default function DashboardPage() {
 
   return (
     <div className="max-w-6xl">
-      <h1 className="text-3xl font-bold mb-6">Welcome to DuckDB Glass</h1>
+      <h1 className="text-3xl font-bold mb-6">Welcome to Orbital DB</h1>
 
       {profiles.length === 0 ? (
         <div className="card mb-6">
           <h2 className="text-xl font-semibold mb-4">Getting Started</h2>
           <p className="text-gray-600 dark:text-gray-400 mb-4">
-            DuckDB Glass is a desktop client for managing and querying DuckDB databases.
+            Orbital DB is a modern desktop client for managing and querying DuckDB databases.
           </p>
           <p className="mb-4">You don&apos;t have any database profiles yet.</p>
           <button onClick={() => navigate('/profiles')} className="btn-primary">
