@@ -67,7 +67,7 @@ export interface QueryParam {
   value: unknown;
 }
 
-export type StatementType = 'DQL' | 'DML' | 'DDL' | 'TCL' | 'DuckDB' | 'UNKNOWN';
+export type StatementType = 'DQL' | 'DML' | 'DDL' | 'TCL' | 'UNKNOWN';
 
 export interface QueryResult {
   columns: { name: string; dataType: string }[];

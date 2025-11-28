@@ -122,16 +122,21 @@ export default function QueryEditor({ profileId, isReadOnly = false }: QueryEdit
 
         setResult(queryResult);
 
-        // Show success toast for non-DQL statements
-        if (queryResult.statementType && queryResult.statementType !== 'DQL') {
-          const typeLabel = queryResult.statementType === 'DDL' ? 'DDL' :
+        // Show success toast for all statement types
+        if (queryResult.statementType) {
+          const typeLabel = queryResult.statementType === 'DQL' ? 'Query' :
+                          queryResult.statementType === 'DDL' ? 'DDL' :
                           queryResult.statementType === 'DML' ? 'DML' :
                           queryResult.statementType === 'TCL' ? 'Transaction' :
-                          queryResult.statementType === 'DuckDB' ? 'DuckDB' : 'Query';
+                          'Query';
+
+          const rowInfo = queryResult.statementType === 'DQL' && queryResult.rowCount > 0
+            ? ` - ${queryResult.rowCount.toLocaleString()} row${queryResult.rowCount !== 1 ? 's' : ''}`
+            : '';
 
           dispatch(addToast({
             type: 'success',
-            message: `${typeLabel} statement executed successfully in ${queryResult.executionTimeMs.toFixed(0)}ms`,
+            message: `${typeLabel} executed successfully in ${queryResult.executionTimeMs.toFixed(0)}ms${rowInfo}`,
             duration: 4000,
           }));
         }

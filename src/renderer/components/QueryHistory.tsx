@@ -25,7 +25,7 @@ export default function QueryHistory({ profileId, onSelectQuery }: QueryHistoryP
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [searchText, setSearchText] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'success' | 'failed'>('all');
-  const [typeFilter, setTypeFilter] = useState<'all' | 'DQL' | 'DML' | 'DDL' | 'TCL' | 'DuckDB'>('all');
+  const [typeFilter, setTypeFilter] = useState<'all' | 'DQL' | 'DML' | 'DDL' | 'TCL'>('all');
 
   const loadHistory = useCallback(async () => {
     try {
@@ -102,7 +102,6 @@ export default function QueryHistory({ profileId, onSelectQuery }: QueryHistoryP
       case 'DML': return 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300';
       case 'DDL': return 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300';
       case 'TCL': return 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300';
-      case 'DuckDB': return 'bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300';
       default: return 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300';
     }
   };

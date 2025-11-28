@@ -432,19 +432,14 @@ function detectStatementType(sql: string): StatementType {
   const trimmed = sql.trim().toUpperCase();
   const firstWord = trimmed.split(/\s+/)[0];
 
-  // DuckDB-specific modern SQL features
-  // FROM-first syntax: "FROM table SELECT *" instead of "SELECT * FROM table"
-  if (firstWord === 'FROM') {
-    return 'DuckDB';
-  }
-
-  // PIVOT/UNPIVOT operations (DuckDB extension)
-  if (['PIVOT', 'UNPIVOT'].includes(firstWord)) {
-    return 'DuckDB';
-  }
-
   // DQL - Data Query Language (including utility commands that query metadata)
-  if (firstWord === 'SELECT' || firstWord === 'WITH' || trimmed.startsWith('(SELECT')) {
+  // FROM-first syntax: "FROM table SELECT *" is DQL (returns data like SELECT)
+  if (firstWord === 'SELECT' || firstWord === 'WITH' || firstWord === 'FROM' || trimmed.startsWith('(SELECT')) {
+    return 'DQL';
+  }
+
+  // PIVOT/UNPIVOT operations (DuckDB extension) - these also return data
+  if (['PIVOT', 'UNPIVOT'].includes(firstWord)) {
     return 'DQL';
   }
 
