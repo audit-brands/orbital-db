@@ -11,6 +11,8 @@ import SaveSnippetDialog from './SaveSnippetDialog';
 import SqlEditor from './SqlEditor';
 import { getBaseName } from '../utils/path';
 import { DEFAULT_RESULT_LIMIT, DEFAULT_QUERY_TIMEOUT_MS } from '@shared/constants';
+import { useAppDispatch } from '../state/hooks';
+import { addToast } from '../state/slices/uiSlice';
 
 interface QueryEditorProps {
   profileId: string;
@@ -24,6 +26,7 @@ type TabView = 'results' | 'history' | 'saved';
 
 export default function QueryEditor({ profileId, isReadOnly = false }: QueryEditorProps) {
   const theme = useSelector((state: RootState) => state.ui.theme);
+  const dispatch = useAppDispatch();
   const [sql, setSql] = useState('');
   const [result, setResult] = useState<QueryResult | null>(null);
   const [loading, setLoading] = useState(false);
@@ -95,6 +98,20 @@ export default function QueryEditor({ profileId, isReadOnly = false }: QueryEdit
         }
 
         setResult(queryResult);
+
+        // Show success toast for non-DQL statements
+        if (queryResult.statementType && queryResult.statementType !== 'DQL') {
+          const typeLabel = queryResult.statementType === 'DDL' ? 'DDL' :
+                          queryResult.statementType === 'DML' ? 'DML' :
+                          queryResult.statementType === 'TCL' ? 'Transaction' :
+                          queryResult.statementType === 'DuckDB' ? 'DuckDB' : 'Query';
+
+          dispatch(addToast({
+            type: 'success',
+            message: `${typeLabel} statement executed successfully in ${queryResult.executionTimeMs.toFixed(0)}ms`,
+            duration: 4000,
+          }));
+        }
 
         // Record successful query in history
         if (window.orbitalDb?.queryHistory) {
@@ -201,11 +218,19 @@ export default function QueryEditor({ profileId, isReadOnly = false }: QueryEdit
       // This streams directly to disk without loading all data into memory
       const rowCount = await window.orbitalDb.query.exportCsv(profileId, sql, filePath);
 
-      // Show success feedback
+      // Show success toast
       const fileName = getBaseName(filePath) || 'file';
-      alert(`Successfully exported ${rowCount.toLocaleString()} rows to ${fileName}`);
+      dispatch(addToast({
+        type: 'success',
+        message: `Successfully exported ${rowCount.toLocaleString()} rows to ${fileName}`,
+        duration: 5000,
+      }));
     } catch (err) {
-      setError(`Export failed: ${(err as Error).message}`);
+      dispatch(addToast({
+        type: 'error',
+        message: `Export failed: ${(err as Error).message}`,
+        duration: 7000,
+      }));
     }
   };
 
@@ -231,8 +256,18 @@ export default function QueryEditor({ profileId, isReadOnly = false }: QueryEdit
       setShowSaveDialog(false);
       setSnippetsRefreshKey(prev => prev + 1);
       setActiveTab('saved');
+
+      dispatch(addToast({
+        type: 'success',
+        message: `SQL query saved as "${name}"`,
+        duration: 4000,
+      }));
     } catch (err) {
-      setError(`Failed to save SQL query: ${(err as Error).message}`);
+      dispatch(addToast({
+        type: 'error',
+        message: `Failed to save SQL query: ${(err as Error).message}`,
+        duration: 7000,
+      }));
     }
   };
 

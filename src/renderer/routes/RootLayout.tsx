@@ -5,6 +5,7 @@ import { Outlet } from 'react-router-dom';
 import { useAppSelector } from '../state/hooks';
 import Sidebar from '../components/Sidebar';
 import TopBar from '../components/TopBar';
+import ToastContainer from '../components/ToastContainer';
 
 export default function RootLayout() {
   const theme = useAppSelector((state) => state.ui.theme);
@@ -27,6 +28,7 @@ export default function RootLayout() {
           <Outlet />
         </main>
       </div>
+      <ToastContainer />
     </div>
   );
 }

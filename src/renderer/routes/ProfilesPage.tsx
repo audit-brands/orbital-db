@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../state/hooks';
 import { loadProfiles, createProfile, updateProfile, deleteProfile } from '../state/slices/profilesSlice';
+import { addToast } from '../state/slices/uiSlice';
 import type { DuckDBProfile, DuckDBProfileInput } from '@shared/types';
 import ProfileForm from '../components/ProfileForm';
 import ProfileList from '../components/ProfileList';
@@ -20,15 +21,33 @@ export default function ProfilesPage() {
   }, [dispatch]);
 
   const handleCreate = async (input: DuckDBProfileInput) => {
-    if (editingProfile) {
-      // Update existing profile
-      await dispatch(updateProfile({ id: editingProfile.id, update: input }));
-      setEditingProfile(null);
-    } else {
-      // Create new profile
-      await dispatch(createProfile(input));
+    try {
+      if (editingProfile) {
+        // Update existing profile
+        await dispatch(updateProfile({ id: editingProfile.id, update: input }));
+        dispatch(addToast({
+          type: 'success',
+          message: `Profile "${input.name}" updated successfully`,
+          duration: 4000,
+        }));
+        setEditingProfile(null);
+      } else {
+        // Create new profile
+        await dispatch(createProfile(input));
+        dispatch(addToast({
+          type: 'success',
+          message: `Profile "${input.name}" created successfully`,
+          duration: 4000,
+        }));
+      }
+      setShowForm(false);
+    } catch (err) {
+      dispatch(addToast({
+        type: 'error',
+        message: `Failed to ${editingProfile ? 'update' : 'create'} profile: ${(err as Error).message}`,
+        duration: 7000,
+      }));
     }
-    setShowForm(false);
   };
 
   const handleEdit = (profile: DuckDBProfile) => {
@@ -42,8 +61,24 @@ export default function ProfilesPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (confirm('Are you sure you want to delete this profile?')) {
-      await dispatch(deleteProfile(id));
+    const profile = profiles.find(p => p.id === id);
+    const profileName = profile?.name || 'profile';
+
+    if (confirm(`Are you sure you want to delete "${profileName}"?`)) {
+      try {
+        await dispatch(deleteProfile(id));
+        dispatch(addToast({
+          type: 'success',
+          message: `Profile "${profileName}" deleted successfully`,
+          duration: 4000,
+        }));
+      } catch (err) {
+        dispatch(addToast({
+          type: 'error',
+          message: `Failed to delete profile: ${(err as Error).message}`,
+          duration: 7000,
+        }));
+      }
     }
   };
 

@@ -2,10 +2,12 @@
 
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
-interface Toast {
+export interface Toast {
   id: string;
   message: string;
-  type: 'success' | 'error' | 'info';
+  type: 'success' | 'error' | 'info' | 'warning';
+  duration?: number; // Auto-dismiss after this many milliseconds (default: 5000)
+  dismissible?: boolean; // Can user manually dismiss? (default: true)
 }
 
 interface UiState {
@@ -31,16 +33,22 @@ const uiSlice = createSlice({
       state.sidebarCollapsed = !state.sidebarCollapsed;
     },
     addToast: (state, action: PayloadAction<Omit<Toast, 'id'>>) => {
-      state.toasts.push({
+      const toast: Toast = {
         ...action.payload,
-        id: Date.now().toString(),
-      });
+        id: `toast-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+        duration: action.payload.duration ?? 5000,
+        dismissible: action.payload.dismissible ?? true,
+      };
+      state.toasts.push(toast);
     },
     removeToast: (state, action: PayloadAction<string>) => {
       state.toasts = state.toasts.filter((t) => t.id !== action.payload);
     },
+    clearAllToasts: (state) => {
+      state.toasts = [];
+    },
   },
 });
 
-export const { toggleTheme, toggleSidebar, addToast, removeToast } = uiSlice.actions;
+export const { toggleTheme, toggleSidebar, addToast, removeToast, clearAllToasts } = uiSlice.actions;
 export default uiSlice.reducer;
