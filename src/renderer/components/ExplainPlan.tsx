@@ -91,7 +91,7 @@ export default function ExplainPlan({ result, mode }: ExplainPlanProps) {
       <div className="text-xs text-gray-500 dark:text-gray-400">
         <strong>Tip:</strong> You can configure explain output with{' '}
         <code className="px-1 py-0.5 bg-gray-100 dark:bg-gray-800 rounded">
-          PRAGMA explain_output = 'all'
+          PRAGMA explain_output = &apos;all&apos;
         </code>{' '}
         to see both physical and optimized plans.
       </div>
