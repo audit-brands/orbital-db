@@ -202,7 +202,7 @@ All Phase 1 security hardening complete. No critical or medium severity security
 
 ## Phase 2: Query Experience Improvements
 
-### Query History & Snippets ✅ PARTIALLY COMPLETE
+### Query History & Saved SQL ✅ COMPLETE
 
 **Goal**: Help users reuse and organize their SQL queries.
 
@@ -210,47 +210,66 @@ All Phase 1 security hardening complete. No critical or medium severity security
 - Persist last N queries per profile (stored in profiles.json) ✅
 - Query history panel with tabbed UI ✅
 - Quick re-run and copy buttons for historical queries ✅
-- Saved snippets with friendly names and descriptions ❌
-- Search/filter through query history ❌
+- Saved SQL with friendly names and descriptions ✅
+- Search/filter through query history ✅
 
 **Tasks**:
 - [x] Add query history storage (limit to last 50 queries per profile)
 - [x] Create QueryHistory component with list view
 - [x] Add timestamp and execution time to history entries
 - [x] Implement "Run Again" action
-- [x] Add tab-based UI for Results/History
+- [x] Add tab-based UI for Results/History/Saved
 - [x] Add "Copy" button for quick query reuse
 - [x] Improve SQL statement type classification (SHOW, DESCRIBE, etc. as DQL)
-- [ ] Create SavedSnippets feature for frequently used queries
-- [ ] Add snippet management UI (save, rename, delete, organize)
-- [ ] Add search/filter functionality for history
+- [x] Create SavedSnippets feature for frequently used queries
+- [x] Add snippet management UI (save, edit, delete)
+- [x] Implement search/filter functionality for history (SQL text, status, statement type)
 
 **Implementation Notes**:
 - Query history persisted in profiles.json with 50-query limit per profile
-- Tab-based UI in QueryEditor.tsx separates Results and History views
+- Three-tab UI in QueryEditor.tsx: Results, History, and Saved SQL
 - Copy-to-clipboard with 2-second visual feedback
 - Statement type badges (DQL, DML, DDL, TCL) with color coding
 - History auto-refreshes after query execution
-- Full implementation in QueryHistory.tsx and QueryEditor.tsx
+- Saved SQL with name, description, timestamps (max 100 per profile)
+- Backend validation: field length limits, type checking, count enforcement
+- Search filters: case-insensitive text search, status filter (success/failed), statement type filter
+- Full implementation in QueryHistory.tsx, SavedSnippets.tsx, SaveSnippetDialog.tsx, and QueryEditor.tsx
 
-### Monaco Editor Integration
+### Monaco Editor Integration ✅ COMPLETE
 
-**Goal**: Replace textarea with professional SQL editor.
+**Goal**: Replace textarea with professional SQL editor while maintaining simplicity.
+
+**Design Principles**:
+- Keep it minimal and approachable (not a full IDE)
+- Clean interface that respects both light and dark themes
+- Preserve the simple, focused editing experience
+- Easy revert path if it feels too heavy
 
 **Features**:
-- Syntax highlighting for SQL
-- Autocomplete for table/column names
-- Multi-cursor editing
-- Find/replace functionality
-- Bracket matching and code folding
+- Syntax highlighting for SQL ✅
+- Autocomplete using DuckDB's native `sql_auto_complete` function ✅
+- Multi-cursor editing ✅
+- Find/replace functionality ✅
+- Bracket matching and code folding ✅
 
 **Tasks**:
-- [ ] Install `@monaco-editor/react` package
-- [ ] Replace textarea in QueryEditor with Monaco
-- [ ] Configure SQL language support
-- [ ] Implement autocomplete provider using schema metadata
-- [ ] Add DuckDB-specific SQL functions to autocomplete
-- [ ] Configure keybindings (keep Cmd/Ctrl+Enter for execution)
+- [x] Install `@monaco-editor/react` package
+- [x] Replace textarea in QueryEditor with Monaco
+- [x] Configure minimal SQL language support (no unnecessary UI chrome)
+- [x] Implement autocomplete provider using DuckDB's `sql_auto_complete()`
+- [x] Add DuckDB-specific SQL functions to autocomplete
+- [x] Configure keybindings (keep Cmd/Ctrl+Enter for execution)
+- [x] Test in both light and dark themes
+- [x] Disable IDE-like features (minimap disabled, optional line numbers, etc.)
+
+**Implementation Notes**:
+- Implemented in `src/renderer/components/SqlEditor.tsx`
+- Monaco Editor configured with minimal, clean setup (no minimap, focused interface)
+- Autocomplete uses DuckDB's native `sql_auto_complete()` function via IPC
+- Supports both light (`vs`) and dark (`vs-dark`) themes
+- Cmd/Ctrl+Enter keybinding preserved for query execution
+- Fixed Windows build issues with proper path handling in `vite-plugin-monaco-editor`
 
 ### Streaming & Virtualized Results
 
