@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import Editor, { OnMount, loader } from '@monaco-editor/react';
-import type { editor } from 'monaco-editor';
+import type { editor, languages, Position, IRange } from 'monaco-editor';
 import * as monaco from 'monaco-editor';
 
 // Configure Monaco to use bundled files instead of CDN (required for CSP)
@@ -42,7 +42,10 @@ export default function SqlEditor({ value, onChange, onExecute, readOnly, theme,
     if (profileId && window.orbitalDb?.query?.autocomplete && monacoInstance) {
       monacoInstance.languages.registerCompletionItemProvider('sql', {
         triggerCharacters: [' ', '.', '(', ','],
-        provideCompletionItems: async (model, position) => {
+        provideCompletionItems: async (
+          model: editor.ITextModel,
+          position: Position
+        ): Promise<languages.CompletionList> => {
           try {
             // Get text up to cursor position
             const textUntilPosition = model.getValueInRange({
@@ -57,7 +60,7 @@ export default function SqlEditor({ value, onChange, onExecute, readOnly, theme,
 
             // Get the word at cursor position to determine replacement range
             const word = model.getWordUntilPosition(position);
-            const range = {
+            const range: IRange = {
               startLineNumber: position.lineNumber,
               endLineNumber: position.lineNumber,
               startColumn: word.startColumn,
@@ -66,7 +69,7 @@ export default function SqlEditor({ value, onChange, onExecute, readOnly, theme,
 
             // Convert DuckDB suggestions to Monaco completion items
             return {
-              suggestions: suggestions.map((suggestion) => ({
+              suggestions: suggestions.map((suggestion): languages.CompletionItem => ({
                 label: suggestion,
                 kind: monacoInstance.languages.CompletionItemKind.Keyword,
                 insertText: suggestion,

@@ -19,7 +19,8 @@ type WorkerMethod =
   | 'listTables'
   | 'getColumns'
   | 'listConstraints'
-  | 'exportToCsv';
+  | 'exportToCsv'
+  | 'getAutocompleteSuggestions';
 
 interface WorkerRequest {
   id: number;
@@ -52,6 +53,7 @@ export interface DuckDBExecutor {
   getColumns(profileId: string, schemaName: string, tableName: string): Promise<ColumnInfo[]>;
   listConstraints(profileId: string, schemaName: string, tableName: string): Promise<ConstraintInfo[]>;
   exportToCsv(profileId: string, sql: string, filePath: string): Promise<number>;
+  getAutocompleteSuggestions(profileId: string, queryString: string): Promise<string[]>;
   destroy(): Promise<void>;
 }
 
@@ -147,6 +149,10 @@ export class DuckDBWorkerClient implements DuckDBExecutor {
 
   exportToCsv(profileId: string, sql: string, filePath: string): Promise<number> {
     return this.call<number>('exportToCsv', profileId, sql, filePath);
+  }
+
+  getAutocompleteSuggestions(profileId: string, queryString: string): Promise<string[]> {
+    return this.call<string[]>('getAutocompleteSuggestions', profileId, queryString);
   }
 
   async destroy(): Promise<void> {
