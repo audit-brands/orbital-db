@@ -9,6 +9,7 @@ import QueryHistory from './QueryHistory';
 import SavedSnippets from './SavedSnippets';
 import SaveSnippetDialog from './SaveSnippetDialog';
 import SqlEditor from './SqlEditor';
+import ExplainPlan from './ExplainPlan';
 import { getBaseName } from '../utils/path';
 import { DEFAULT_RESULT_LIMIT, DEFAULT_QUERY_TIMEOUT_MS } from '@shared/constants';
 import { useAppDispatch } from '../state/hooks';
@@ -36,6 +37,7 @@ export default function QueryEditor({ profileId, isReadOnly = false }: QueryEdit
   const [activeTab, setActiveTab] = useState<TabView>('results');
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [snippetsRefreshKey, setSnippetsRefreshKey] = useState(0);
+  const [explainMode, setExplainMode] = useState<'off' | 'explain' | 'analyze'>('off');
   const cancelRequestedRef = useRef(false);
   const currentRunRef = useRef<Promise<QueryResult> | null>(null);
 
@@ -55,9 +57,17 @@ export default function QueryEditor({ profileId, isReadOnly = false }: QueryEdit
     const maxExecutionTimeMs =
       Number.isFinite(parsedTimeout) && parsedTimeout > 0 ? parsedTimeout : undefined;
 
+    // Wrap query with EXPLAIN or EXPLAIN ANALYZE if mode is enabled
+    let queryToRun = trimmed;
+    if (explainMode === 'explain') {
+      queryToRun = `EXPLAIN ${trimmed}`;
+    } else if (explainMode === 'analyze') {
+      queryToRun = `EXPLAIN ANALYZE ${trimmed}`;
+    }
+
     const runPromise = window.orbitalDb.query.run(
       profileId,
-      trimmed,
+      queryToRun,
       undefined,
       {
         rowLimit: DEFAULT_RESULT_LIMIT,
@@ -173,7 +183,7 @@ export default function QueryEditor({ profileId, isReadOnly = false }: QueryEdit
           setLoading(false);
         }
       });
-  }, [sql, timeoutMs, profileId, isReadOnly, setLoading, setError, setResult, setHistoryRefreshKey, setActiveTab]);
+  }, [sql, timeoutMs, profileId, isReadOnly, explainMode, dispatch]);
 
   // Global keyboard shortcut handler
   useEffect(() => {
@@ -293,7 +303,7 @@ export default function QueryEditor({ profileId, isReadOnly = false }: QueryEdit
         </div>
         <div className="mt-3 flex flex-wrap gap-3 items-center">
           <button onClick={handleRunQuery} disabled={loading} className="btn-primary">
-            {loading ? 'Running...' : 'Run Query'}
+            {loading ? 'Running...' : explainMode === 'off' ? 'Run Query' : explainMode === 'explain' ? 'Explain Query' : 'Explain & Analyze'}
           </button>
           <button
             onClick={() => setShowSaveDialog(true)}
@@ -319,6 +329,44 @@ export default function QueryEditor({ profileId, isReadOnly = false }: QueryEdit
           >
             Cancel Query
           </button>
+
+          {/* EXPLAIN Mode Selector */}
+          <div className="flex items-center space-x-1 border border-gray-300 dark:border-gray-600 rounded overflow-hidden">
+            <button
+              onClick={() => setExplainMode('off')}
+              className={`px-3 py-1 text-xs font-medium transition-colors ${
+                explainMode === 'off'
+                  ? 'bg-blue-600 text-white dark:bg-blue-500'
+                  : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+              }`}
+              title="Run query normally"
+            >
+              Normal
+            </button>
+            <button
+              onClick={() => setExplainMode('explain')}
+              className={`px-3 py-1 text-xs font-medium transition-colors border-l border-gray-300 dark:border-gray-600 ${
+                explainMode === 'explain'
+                  ? 'bg-purple-600 text-white dark:bg-purple-500'
+                  : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+              }`}
+              title="Show query plan without execution"
+            >
+              EXPLAIN
+            </button>
+            <button
+              onClick={() => setExplainMode('analyze')}
+              className={`px-3 py-1 text-xs font-medium transition-colors border-l border-gray-300 dark:border-gray-600 ${
+                explainMode === 'analyze'
+                  ? 'bg-orange-600 text-white dark:bg-orange-500'
+                  : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+              }`}
+              title="Execute query and show actual performance metrics"
+            >
+              ANALYZE
+            </button>
+          </div>
+
           <label className="flex items-center space-x-2 text-xs text-gray-600 dark:text-gray-400">
             <span>Timeout (ms)</span>
             <input
@@ -379,7 +427,13 @@ export default function QueryEditor({ profileId, isReadOnly = false }: QueryEdit
               </div>
             )}
 
-            {result && (
+            {/* EXPLAIN Plan Display */}
+            {result && (explainMode === 'explain' || explainMode === 'analyze') && (
+              <ExplainPlan result={result} mode={explainMode} />
+            )}
+
+            {/* Normal Query Results */}
+            {result && explainMode === 'off' && (
         <div className="card flex-1">
           <div className="mb-4 flex justify-between items-center">
             <h3 className="text-lg font-semibold">Results</h3>
