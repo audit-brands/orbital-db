@@ -47,7 +47,7 @@ export default defineConfig({
       monacoEditorPlugin({
         languageWorkers: ['editorWorkerService'],
         publicPath: 'monacoeditorwork',
-        customDistPath: (root: string, buildOutDir: string) => {
+        customDistPath: (_root: string, buildOutDir: string) => {
           return path.join(buildOutDir, 'monacoeditorwork');
         }
       })
