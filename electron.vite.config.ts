@@ -45,13 +45,7 @@ export default defineConfig({
     plugins: [
       react(),
       monacoEditorPlugin({
-        languageWorkers: ['editorWorkerService'],
-        customWorkers: [
-          {
-            label: 'sql',
-            entry: 'monaco-editor/esm/vs/language/sql/sql.worker'
-          }
-        ]
+        languageWorkers: ['editorWorkerService']
       })
     ],
     resolve: {
