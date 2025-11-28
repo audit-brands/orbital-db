@@ -15,7 +15,7 @@ interface UiState {
 }
 
 const initialState: UiState = {
-  theme: 'light',
+  theme: 'dark',
   sidebarCollapsed: false,
   toasts: [],
 };
