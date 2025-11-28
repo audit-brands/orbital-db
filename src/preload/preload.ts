@@ -56,6 +56,8 @@ contextBridge.exposeInMainWorld('orbitalDb', {
       ipcRenderer.invoke(IPC_CHANNELS.QUERY_EXPORT_CSV, profileId, sql, filePath),
     cancel: (profileId: string): Promise<void> =>
       ipcRenderer.invoke(IPC_CHANNELS.QUERY_CANCEL, profileId),
+    autocomplete: (profileId: string, queryString: string): Promise<string[]> =>
+      ipcRenderer.invoke(IPC_CHANNELS.QUERY_AUTOCOMPLETE, profileId, queryString),
   },
   queryHistory: {
     add: (

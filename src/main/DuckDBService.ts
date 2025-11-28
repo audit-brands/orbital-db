@@ -51,7 +51,7 @@ export class DuckDBService {
   async openConnection(profile: DuckDBProfile): Promise<void> {
     await this.withProfileLock(profile.id, async () => {
       if (this.connections.has(profile.id)) {
-        console.log(`Connection already open for profile: ${profile.id}`);
+        // Connection already open, reuse existing
         return;
       }
 
@@ -83,24 +83,22 @@ export class DuckDBService {
         }
 
         this.connections.set(profile.id, { instance, connection, profile });
-        console.log(`Opened connection for profile: ${profile.id}`);
       } catch (error) {
         // Clean up partially created resources on failure
         if (connection) {
           try {
             connection.closeSync();
           } catch (closeError) {
-            console.warn(`Failed to close connection during cleanup:`, closeError);
+            // Silently ignore cleanup errors
           }
         }
         if (instance) {
           try {
             instance.closeSync();
           } catch (closeError) {
-            console.warn(`Failed to close instance during cleanup:`, closeError);
+            // Silently ignore cleanup errors
           }
         }
-        console.error(`Failed to open connection for profile ${profile.id}:`, error);
         throw error;
       }
     });
@@ -110,7 +108,7 @@ export class DuckDBService {
     await this.withProfileLock(profileId, async () => {
       const entry = this.connections.get(profileId);
       if (!entry) {
-        console.warn(`No connection found for profile: ${profileId}`);
+        // No connection to close
         return;
       }
 
@@ -118,9 +116,7 @@ export class DuckDBService {
         entry.connection.closeSync();
         entry.instance.closeSync();
         this.connections.delete(profileId);
-        console.log(`Closed connection for profile: ${profileId}`);
       } catch (error) {
-        console.error(`Failed to close connection for profile ${profileId}:`, error);
         throw error;
       }
     });
@@ -170,7 +166,7 @@ export class DuckDBService {
         } else if (ext === 'json' || ext === 'jsonl' || ext === 'ndjson') {
           readFunction = `read_json('${escapedPath}', AUTO_DETECT=TRUE)`;
         } else {
-          console.warn(`Unable to auto-detect file type for ${file.path}, defaulting to CSV`);
+          // Default to CSV for unknown types
           readFunction = `read_csv('${escapedPath}', AUTO_DETECT=TRUE)`;
         }
         break;
@@ -182,9 +178,7 @@ export class DuckDBService {
     try {
       const createViewSQL = `CREATE OR REPLACE VIEW "${escapedAlias}" AS SELECT * FROM ${readFunction}`;
       await connection.run(createViewSQL);
-      console.log(`Created view for attached file: ${file.alias} -> ${file.path}`);
     } catch (error) {
-      console.error(`Failed to create view for attached file ${file.alias}:`, error);
       throw new Error(
         `Failed to attach file "${file.alias}": ${(error as Error).message}`
       );
@@ -194,13 +188,12 @@ export class DuckDBService {
   async interruptQuery(profileId: string): Promise<void> {
     const entry = this.connections.get(profileId);
     if (!entry) {
-      console.warn(`No connection found to interrupt for profile: ${profileId}`);
+      // No connection to interrupt
       return;
     }
     try {
       entry.connection.interrupt();
     } catch (error) {
-      console.error(`Failed to interrupt query for profile ${profileId}:`, error);
       throw error;
     }
   }
@@ -238,7 +231,7 @@ export class DuckDBService {
             try {
               connection.interrupt();
             } catch (interruptError) {
-              console.warn('Failed to interrupt DuckDB query:', interruptError);
+              // Silently ignore interrupt errors
             }
             reject(new Error(`Query exceeded the configured timeout of ${maxExecutionTimeMs}ms`));
           }, maxExecutionTimeMs);
@@ -287,7 +280,6 @@ export class DuckDBService {
           affectedRows,
         };
       } catch (error) {
-        console.error(`Query execution failed for profile ${profileId}:`, error);
         throw error;
       }
     });
@@ -366,9 +358,37 @@ export class DuckDBService {
       }));
     } catch (error) {
       // If constraints query fails, return empty array (some DuckDB versions may not support this)
-      console.warn(`Failed to list constraints for ${escapedSchema}.${escapedTable}:`, error);
       return [];
     }
+  }
+
+  /**
+   * Get autocomplete suggestions from DuckDB using the sql_auto_complete function.
+   * This provides context-aware suggestions including keywords, table names, column names, and functions.
+   *
+   * @param profileId - The profile ID for the database connection
+   * @param queryString - The partial SQL query to autocomplete
+   * @returns Array of autocomplete suggestions
+   */
+  async getAutocompleteSuggestions(profileId: string, queryString: string): Promise<string[]> {
+    return this.withProfileLock(profileId, async () => {
+      const connection = this.getConnectionOrThrow(profileId);
+
+      try {
+        // Use DuckDB's native sql_auto_complete function
+        const escapedQuery = queryString.replace(/'/g, "''");
+        const autocompleteSQL = `SELECT suggestion FROM sql_auto_complete('${escapedQuery}')`;
+
+        const reader = await connection.runAndReadAll(autocompleteSQL);
+        const rows = reader.getRows();
+
+        // Extract suggestion strings from rows
+        return rows.map(row => String(row[0]));
+      } catch (error) {
+        // If autocomplete fails, return empty array (graceful degradation)
+        return [];
+      }
+    });
   }
 
   /**
@@ -388,11 +408,7 @@ export class DuckDBService {
         const escapedPath = filePath.replace(/'/g, "''");
         const copySQL = `COPY (${sql}) TO '${escapedPath}' (HEADER, DELIMITER ',');`;
 
-        const start = performance.now();
         await connection.run(copySQL);
-        const executionTimeMs = performance.now() - start;
-
-        console.log(`Exported query results to ${filePath} in ${executionTimeMs.toFixed(2)}ms`);
 
         const countSQL = `SELECT COUNT(*) FROM (${sql})`;
         const countReader = await connection.runAndReadAll(countSQL);
@@ -401,7 +417,6 @@ export class DuckDBService {
 
         return rowCount;
       } catch (error) {
-        console.error(`CSV export failed for profile ${profileId}:`, error);
         throw error;
       }
     });
@@ -485,6 +500,14 @@ function maybeWrapQueryWithLimit(
 
   if (withoutSemicolon.includes(';')) {
     // Multiple statements detected - do not wrap to avoid altering behavior
+    return { wrappedSql: sql, limitApplied: false };
+  }
+
+  // Check if query already has a LIMIT clause - if so, don't wrap
+  // Use case-insensitive regex to detect LIMIT keyword
+  const hasLimitClause = /\bLIMIT\b/i.test(withoutSemicolon);
+  if (hasLimitClause) {
+    // Query already has LIMIT, don't wrap it
     return { wrappedSql: sql, limitApplied: false };
   }
 

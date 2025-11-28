@@ -46,6 +46,7 @@ declare global {
         ): Promise<QueryResult>;
         exportCsv(profileId: string, sql: string, filePath: string): Promise<number>;
         cancel(profileId: string): Promise<void>;
+        autocomplete(profileId: string, queryString: string): Promise<string[]>;
       };
       queryHistory: {
         add(profileId: string, entry: Omit<QueryHistoryEntry, 'id'>): Promise<QueryHistoryEntry>;

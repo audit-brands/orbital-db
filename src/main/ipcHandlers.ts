@@ -160,6 +160,18 @@ export function registerIpcHandlers(
   });
 
   ipcMain.handle(
+    IPC_CHANNELS.QUERY_AUTOCOMPLETE,
+    async (_event, profileId: string, queryString: string) => {
+      try {
+        return await duckdbService.getAutocompleteSuggestions(profileId, queryString);
+      } catch (error) {
+        // Gracefully return empty array on autocomplete failure
+        return [];
+      }
+    }
+  );
+
+  ipcMain.handle(
     IPC_CHANNELS.QUERY_EXPORT_CSV,
     async (_event, profileId: string, sql: string, filePath: string) => {
       try {

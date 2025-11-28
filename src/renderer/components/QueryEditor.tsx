@@ -1,11 +1,14 @@
 // Query Editor component for running custom SQL
 
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
+import { useSelector } from 'react-redux';
+import type { RootState } from '../state/store';
 import type { QueryResult, StatementType } from '@shared/types';
 import DataGrid from './DataGrid';
 import QueryHistory from './QueryHistory';
 import SavedSnippets from './SavedSnippets';
 import SaveSnippetDialog from './SaveSnippetDialog';
+import SqlEditor from './SqlEditor';
 import { getBaseName } from '../utils/path';
 import { DEFAULT_RESULT_LIMIT, DEFAULT_QUERY_TIMEOUT_MS } from '@shared/constants';
 
@@ -20,6 +23,7 @@ const MUTATING_STATEMENT_TYPES = new Set<StatementType>(['DML', 'DDL', 'TCL']);
 type TabView = 'results' | 'history' | 'saved';
 
 export default function QueryEditor({ profileId, isReadOnly = false }: QueryEditorProps) {
+  const theme = useSelector((state: RootState) => state.ui.theme);
   const [sql, setSql] = useState('');
   const [result, setResult] = useState<QueryResult | null>(null);
   const [loading, setLoading] = useState(false);
@@ -31,6 +35,20 @@ export default function QueryEditor({ profileId, isReadOnly = false }: QueryEdit
   const [snippetsRefreshKey, setSnippetsRefreshKey] = useState(0);
   const cancelRequestedRef = useRef(false);
   const currentRunRef = useRef<Promise<QueryResult> | null>(null);
+
+  // Global keyboard shortcut handler
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Cmd/Ctrl+Enter to run query
+      if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
+        event.preventDefault();
+        handleRunQuery();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [sql, loading]); // Re-register when sql or loading changes
 
   const handleRunQuery = async () => {
     const trimmed = sql.trim();
@@ -171,14 +189,6 @@ export default function QueryEditor({ profileId, isReadOnly = false }: QueryEdit
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    // Cmd/Ctrl + Enter to run query
-    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
-      e.preventDefault();
-      handleRunQuery();
-    }
-  };
-
   const handleExportCSV = async () => {
     if (!result || !sql) return;
 
@@ -236,13 +246,16 @@ export default function QueryEditor({ profileId, isReadOnly = false }: QueryEdit
           </label>
           <span className="text-xs text-gray-500">Press Cmd/Ctrl+Enter to run</span>
         </div>
-        <textarea
-          value={sql}
-          onChange={(e) => setSql(e.target.value)}
-          onKeyDown={handleKeyDown}
-          className="w-full h-40 p-3 font-mono text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          placeholder="Enter your SQL query here..."
-        />
+        <div className="border border-gray-300 dark:border-gray-600 rounded overflow-hidden">
+          <SqlEditor
+            value={sql}
+            onChange={setSql}
+            onExecute={handleRunQuery}
+            readOnly={false}
+            theme={theme}
+            profileId={profileId}
+          />
+        </div>
         <div className="mt-3 flex flex-wrap gap-3 items-center">
           <button onClick={handleRunQuery} disabled={loading} className="btn-primary">
             {loading ? 'Running...' : 'Run Query'}

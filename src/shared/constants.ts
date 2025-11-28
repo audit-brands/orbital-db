@@ -23,6 +23,7 @@ export const IPC_CHANNELS = {
   QUERY_RUN: 'orbitalDb:query:run',
   QUERY_EXPORT_CSV: 'orbitalDb:query:exportCsv',
   QUERY_CANCEL: 'orbitalDb:query:cancel',
+  QUERY_AUTOCOMPLETE: 'orbitalDb:query:autocomplete',
 
   // Query history
   QUERY_HISTORY_ADD: 'orbitalDb:queryHistory:add',
