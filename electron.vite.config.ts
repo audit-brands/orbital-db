@@ -45,7 +45,11 @@ export default defineConfig({
     plugins: [
       react(),
       monacoEditorPlugin({
-        languageWorkers: ['editorWorkerService']
+        languageWorkers: ['editorWorkerService'],
+        publicPath: 'monacoeditorwork',
+        customDistPath: (root: string, buildOutDir: string) => {
+          return path.join(buildOutDir, 'monacoeditorwork');
+        }
       })
     ],
     resolve: {
