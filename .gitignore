@@ -29,3 +29,6 @@ coverage/
 
 # Misc
 *.tsbuildinfo
+
+# 1BRC test data (for local testing only)
+1brc.data/
