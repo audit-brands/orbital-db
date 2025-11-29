@@ -1,4 +1,4 @@
-// Profile creation/edit form
+// Connection creation/edit form
 
 import { useState } from 'react';
 import type { DuckDBProfileInput, AttachedFile } from '@shared/types';
@@ -64,7 +64,7 @@ export default function ProfileForm({ onSubmit, onCancel, initialValues }: Profi
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
-        <label className="block text-sm font-medium mb-1">Profile Name</label>
+        <label className="block text-sm font-medium mb-1">Connection Name</label>
         <input
           type="text"
           value={name}
@@ -111,7 +111,7 @@ export default function ProfileForm({ onSubmit, onCancel, initialValues }: Profi
                   In-Memory Database
                 </p>
                 <p className="text-xs text-blue-700 dark:text-blue-400 mb-2">
-                  Create this profile first, then use the <strong>Import</strong> button to load CSV, Parquet, or JSON files into memory.
+                  Create this connection first, then use the <strong>Import</strong> button to load CSV, Parquet, or JSON files into memory.
                 </p>
                 <p className="text-xs text-yellow-700 dark:text-yellow-400">
                   ⚠️ All data will be lost when the connection closes.
@@ -136,7 +136,7 @@ export default function ProfileForm({ onSubmit, onCancel, initialValues }: Profi
 
       <div className="flex space-x-2">
         <button type="submit" className="btn-primary">
-          {initialValues ? 'Update' : 'Create'} Profile
+          {initialValues ? 'Update' : 'Create'} Connection
         </button>
         <button type="button" onClick={onCancel} className="btn-secondary">
           Cancel

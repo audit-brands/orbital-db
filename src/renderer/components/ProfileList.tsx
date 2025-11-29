@@ -1,4 +1,4 @@
-// Profile list component
+// Connection list component
 
 import { useNavigate } from 'react-router-dom';
 import type { DuckDBProfile } from '@shared/types';
@@ -49,34 +49,43 @@ export default function ProfileList({ profiles, onEdit, onDelete }: ProfileListP
                 <span className="font-medium">Path:</span> {profile.dbPath}
               </div>
             </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="grid grid-cols-3 gap-2">
+            {/* Top Row - Database Actions */}
             <button
               onClick={() => navigate(`/db/${profile.id}/schema`)}
-              className="flex-1 min-w-[80px] btn-primary text-sm py-1.5"
+              className="btn-primary text-sm py-1.5"
             >
               Schema
             </button>
             <button
               onClick={() => navigate(`/db/${profile.id}/query`)}
-              className="flex-1 min-w-[80px] btn-secondary text-sm py-1.5"
+              className="btn-secondary text-sm py-1.5"
             >
               Query
             </button>
             <button
               onClick={() => navigate(`/db/${profile.id}/import`)}
-              className="flex-1 min-w-[80px] btn-secondary text-sm py-1.5"
+              className="btn-secondary text-sm py-1.5"
             >
               Import
             </button>
+            {/* Bottom Row - Management Actions */}
+            <button
+              onClick={() => navigate(`/db/${profile.id}/extensions`)}
+              className="text-sm py-1.5 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 rounded hover:bg-green-200 dark:hover:bg-green-800"
+              title="Manage DuckDB extensions"
+            >
+              🔌 Extensions
+            </button>
             <button
               onClick={() => onEdit(profile)}
-              className="flex-1 min-w-[80px] btn-secondary text-sm py-1.5"
+              className="btn-secondary text-sm py-1.5"
             >
               Edit
             </button>
             <button
               onClick={() => onDelete(profile.id)}
-              className="flex-1 min-w-[80px] py-1.5 bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded hover:bg-red-200 dark:hover:bg-red-800 text-sm"
+              className="py-1.5 bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded hover:bg-red-200 dark:hover:bg-red-800 text-sm"
             >
               Delete
             </button>

@@ -10,16 +10,70 @@ export interface Toast {
   dismissible?: boolean; // Can user manually dismiss? (default: true)
 }
 
-interface UiState {
-  theme: 'light' | 'dark';
-  sidebarCollapsed: boolean;
-  toasts: Toast[];
+export interface AppSettings {
+  // Appearance
+  themeMode: 'light' | 'dark' | 'auto';
+
+  // Editor Preferences
+  editorFontSize: number;
+  editorShowLineNumbers: boolean;
+
+  // Startup Behavior
+  reopenLastProfile: boolean;
+  lastOpenedProfileId: string | null;
 }
 
+interface UiState {
+  theme: 'light' | 'dark'; // Resolved theme (computed from themeMode)
+  sidebarCollapsed: boolean;
+  toasts: Toast[];
+  settings: AppSettings;
+}
+
+const defaultSettings: AppSettings = {
+  themeMode: 'auto',
+  editorFontSize: 14,
+  editorShowLineNumbers: true,
+  reopenLastProfile: false,
+  lastOpenedProfileId: null,
+};
+
+// Load settings from localStorage
+const loadSettings = (): AppSettings => {
+  try {
+    const stored = localStorage.getItem('orbital-db-settings');
+    if (stored) {
+      return { ...defaultSettings, ...JSON.parse(stored) };
+    }
+  } catch (err) {
+    console.error('Failed to load settings:', err);
+  }
+  return defaultSettings;
+};
+
+// Detect system theme
+const getSystemTheme = (): 'light' | 'dark' => {
+  if (typeof window !== 'undefined' && window.matchMedia) {
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
+  return 'dark';
+};
+
+// Resolve theme based on mode
+const resolveTheme = (themeMode: 'light' | 'dark' | 'auto'): 'light' | 'dark' => {
+  if (themeMode === 'auto') {
+    return getSystemTheme();
+  }
+  return themeMode;
+};
+
+const loadedSettings = loadSettings();
+
 const initialState: UiState = {
-  theme: 'dark',
+  theme: resolveTheme(loadedSettings.themeMode),
   sidebarCollapsed: false,
   toasts: [],
+  settings: loadedSettings,
 };
 
 const uiSlice = createSlice({
@@ -27,7 +81,34 @@ const uiSlice = createSlice({
   initialState,
   reducers: {
     toggleTheme: (state) => {
-      state.theme = state.theme === 'light' ? 'dark' : 'light';
+      // Legacy toggle - cycles through auto -> light -> dark -> auto
+      if (state.settings.themeMode === 'auto') {
+        state.settings.themeMode = 'light';
+      } else if (state.settings.themeMode === 'light') {
+        state.settings.themeMode = 'dark';
+      } else {
+        state.settings.themeMode = 'auto';
+      }
+      state.theme = resolveTheme(state.settings.themeMode);
+      localStorage.setItem('orbital-db-settings', JSON.stringify(state.settings));
+    },
+    setThemeMode: (state, action: PayloadAction<'light' | 'dark' | 'auto'>) => {
+      state.settings.themeMode = action.payload;
+      state.theme = resolveTheme(action.payload);
+      localStorage.setItem('orbital-db-settings', JSON.stringify(state.settings));
+    },
+    updateSettings: (state, action: PayloadAction<Partial<AppSettings>>) => {
+      state.settings = { ...state.settings, ...action.payload };
+      // Resolve theme if themeMode changed
+      if (action.payload.themeMode) {
+        state.theme = resolveTheme(action.payload.themeMode);
+      }
+      localStorage.setItem('orbital-db-settings', JSON.stringify(state.settings));
+    },
+    resetSettings: (state) => {
+      state.settings = defaultSettings;
+      state.theme = resolveTheme(defaultSettings.themeMode);
+      localStorage.setItem('orbital-db-settings', JSON.stringify(state.settings));
     },
     toggleSidebar: (state) => {
       state.sidebarCollapsed = !state.sidebarCollapsed;
@@ -50,5 +131,15 @@ const uiSlice = createSlice({
   },
 });
 
-export const { toggleTheme, toggleSidebar, addToast, removeToast, clearAllToasts } = uiSlice.actions;
+export const {
+  toggleTheme,
+  setThemeMode,
+  updateSettings,
+  resetSettings,
+  toggleSidebar,
+  addToast,
+  removeToast,
+  clearAllToasts
+} = uiSlice.actions;
+
 export default uiSlice.reducer;

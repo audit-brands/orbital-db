@@ -81,7 +81,7 @@ export class ProfileStore {
 
     const index = this.profiles.findIndex((p) => p.id === id);
     if (index === -1) {
-      throw new Error(`Profile not found: ${id}`);
+      throw new Error(`Connection not found: ${id}`);
     }
 
     const updatedProfile: DuckDBProfile = {
@@ -101,7 +101,7 @@ export class ProfileStore {
 
     const index = this.profiles.findIndex((p) => p.id === id);
     if (index === -1) {
-      throw new Error(`Profile not found: ${id}`);
+      throw new Error(`Connection not found: ${id}`);
     }
 
     this.profiles.splice(index, 1);

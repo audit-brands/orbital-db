@@ -1,4 +1,4 @@
-// Database Overview component - shows all profiles with table counts
+// Database Overview component - shows all connections with table counts
 
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';

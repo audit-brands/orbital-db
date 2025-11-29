@@ -35,20 +35,20 @@ export default function ProfilesPage() {
   const handleCreate = async (input: DuckDBProfileInput) => {
     try {
       if (editingProfile) {
-        // Update existing profile
+        // Update existing connection
         await dispatch(updateProfile({ id: editingProfile.id, update: input }));
         dispatch(addToast({
           type: 'success',
-          message: `Profile "${input.name}" updated successfully`,
+          message: `Connection "${input.name}" updated successfully`,
           duration: 4000,
         }));
         setEditingProfile(null);
       } else {
-        // Create new profile
+        // Create new connection
         await dispatch(createProfile(input));
         dispatch(addToast({
           type: 'success',
-          message: `Profile "${input.name}" created successfully`,
+          message: `Connection "${input.name}" created successfully`,
           duration: 4000,
         }));
       }
@@ -56,7 +56,7 @@ export default function ProfilesPage() {
     } catch (err) {
       dispatch(addToast({
         type: 'error',
-        message: `Failed to ${editingProfile ? 'update' : 'create'} profile: ${(err as Error).message}`,
+        message: `Failed to ${editingProfile ? 'update' : 'create'} connection: ${(err as Error).message}`,
         duration: 7000,
       }));
     }
@@ -74,20 +74,20 @@ export default function ProfilesPage() {
 
   const handleDelete = async (id: string) => {
     const profile = profiles.find(p => p.id === id);
-    const profileName = profile?.name || 'profile';
+    const connectionName = profile?.name || 'connection';
 
-    if (confirm(`Are you sure you want to delete "${profileName}"?`)) {
+    if (confirm(`Are you sure you want to delete the connection "${connectionName}"?`)) {
       try {
         await dispatch(deleteProfile(id));
         dispatch(addToast({
           type: 'success',
-          message: `Profile "${profileName}" deleted successfully`,
+          message: `Connection "${connectionName}" deleted successfully`,
           duration: 4000,
         }));
       } catch (err) {
         dispatch(addToast({
           type: 'error',
-          message: `Failed to delete profile: ${(err as Error).message}`,
+          message: `Failed to delete connection: ${(err as Error).message}`,
           duration: 7000,
         }));
       }
@@ -97,7 +97,7 @@ export default function ProfilesPage() {
   return (
     <div className="max-w-6xl">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Database Profiles</h1>
+        <h1 className="text-3xl font-bold">Database Connections</h1>
         <div className="flex space-x-2">
           <button onClick={() => navigate('/create-database')} className="btn-primary">
             🚀 Create Database 🚀
@@ -109,7 +109,7 @@ export default function ProfilesPage() {
             }}
             className="btn-secondary"
           >
-            {showForm ? 'Cancel' : '+ New Profile'}
+            {showForm ? 'Cancel' : '+ New Connection'}
           </button>
         </div>
       </div>
@@ -137,7 +137,7 @@ export default function ProfilesPage() {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search profiles by name or path..."
+              placeholder="Search connections by name or path..."
               className="input-field w-full pl-10 pr-10"
             />
             {searchQuery && (
@@ -159,7 +159,7 @@ export default function ProfilesPage() {
           </div>
           {searchQuery && (
             <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-              Found {filteredProfiles.length} of {profiles.length} profile{profiles.length !== 1 ? 's' : ''}
+              Found {filteredProfiles.length} of {profiles.length} connection{profiles.length !== 1 ? 's' : ''}
             </p>
           )}
         </div>
@@ -168,7 +168,7 @@ export default function ProfilesPage() {
       {showForm && (
         <div className="card mb-6">
           <h2 className="text-xl font-semibold mb-4">
-            {editingProfile ? 'Edit Profile' : 'Create New Profile'}
+            {editingProfile ? 'Edit Connection' : 'Create New Connection'}
           </h2>
           <ProfileForm
             onSubmit={handleCreate}
@@ -183,18 +183,18 @@ export default function ProfilesPage() {
       )}
 
       {loading ? (
-        <div className="text-center py-12 text-gray-500">Loading profiles...</div>
+        <div className="text-center py-12 text-gray-500">Loading connections...</div>
       ) : profiles.length === 0 ? (
         <div className="card text-center py-12">
-          <p className="text-gray-600 dark:text-gray-400 mb-4">No profiles yet.</p>
+          <p className="text-gray-600 dark:text-gray-400 mb-4">No database connections yet.</p>
           <button onClick={() => setShowForm(true)} className="btn-primary">
-            Create Your First Profile
+            Create Your First Connection
           </button>
         </div>
       ) : filteredProfiles.length === 0 ? (
         <div className="card text-center py-12">
           <div className="text-gray-400 text-5xl mb-4">🔍</div>
-          <p className="text-gray-600 dark:text-gray-400 mb-2">No profiles match your search</p>
+          <p className="text-gray-600 dark:text-gray-400 mb-2">No connections match your search</p>
           <p className="text-sm text-gray-500 dark:text-gray-500 mb-4">
             Try a different search term or clear the filter
           </p>

@@ -51,7 +51,7 @@ export default function Sidebar() {
 
   const navItems = [
     { path: '/', label: 'Dashboard', icon: '🏠' },
-    { path: '/profiles', label: 'Databases', icon: '🗄️' },
+    { path: '/profiles', label: 'Connections', icon: '🗄️' },
     { path: '/settings', label: 'Settings', icon: '⚙️' },
   ];
 
