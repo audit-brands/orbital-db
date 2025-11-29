@@ -11,12 +11,17 @@ interface AttachedFileListProps {
 
 export default function AttachedFileList({ files, onChange, disabled }: AttachedFileListProps) {
   const [isAdding, setIsAdding] = useState(false);
+  const [inputMode, setInputMode] = useState<'file' | 'url'>('file');
   const [newAlias, setNewAlias] = useState('');
   const [newPath, setNewPath] = useState('');
   const [newType, setNewType] = useState<AttachedFile['type']>('auto');
   const [showCsvOptions, setShowCsvOptions] = useState(false);
   const [csvOptions, setCsvOptions] = useState<CsvOptions>({});
   const [error, setError] = useState<string | null>(null);
+
+  const isRemoteUrl = (path: string): boolean => {
+    return path.startsWith('http://') || path.startsWith('https://') || path.startsWith('s3://');
+  };
 
   const handleSelectFile = async () => {
     if (!window.orbitalDb) {
@@ -55,6 +60,41 @@ export default function AttachedFileList({ files, onChange, disabled }: Attached
       }
     } catch (err) {
       setError((err as Error).message);
+    }
+  };
+
+  const handlePathChange = (path: string) => {
+    setNewPath(path);
+
+    // Auto-detect if URL and suggest alias from URL
+    if (isRemoteUrl(path)) {
+      try {
+        const url = new URL(path);
+        const fileName = url.pathname.split('/').pop() || '';
+        const baseName = fileName.replace(/\.(csv|parquet|json|jsonl)$/i, '');
+        const suggestedAlias = baseName.toLowerCase().replace(/[^a-z0-9_]/g, '_');
+        if (suggestedAlias) {
+          setNewAlias(suggestedAlias);
+        }
+
+        // Auto-detect file type from URL extension
+        const ext = fileName.split('.').pop()?.toLowerCase();
+        if (ext === 'csv' || ext === 'txt') {
+          setNewType('csv');
+          setShowCsvOptions(true);
+        } else if (ext === 'parquet') {
+          setNewType('parquet');
+          setShowCsvOptions(false);
+        } else if (ext === 'json' || ext === 'jsonl') {
+          setNewType('json');
+          setShowCsvOptions(false);
+        } else {
+          setNewType('auto');
+          setShowCsvOptions(false);
+        }
+      } catch {
+        // Invalid URL, ignore auto-detection
+      }
     }
   };
 
@@ -147,44 +187,52 @@ export default function AttachedFileList({ files, onChange, disabled }: Attached
 
       {files.length > 0 && (
         <div className="space-y-2">
-          {files.map(file => (
-            <div
-              key={file.id}
-              className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700"
-            >
-              <div className="flex items-center space-x-3 flex-1 min-w-0">
-                <span className="text-2xl">{getFileTypeIcon(file.type)}</span>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center space-x-2">
-                    <code className="text-sm font-mono font-semibold text-blue-600 dark:text-blue-400">
-                      {file.alias}
-                    </code>
-                    <span className="text-xs px-1.5 py-0.5 rounded bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400">
-                      {file.type === 'auto' ? 'auto-detect' : file.type.toUpperCase()}
-                    </span>
-                    {file.csvOptions?.delimiter && (
-                      <span className="text-xs px-1.5 py-0.5 rounded bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300" title="Custom delimiter">
-                        delim: {file.csvOptions.delimiter === '\t' ? '\\t' : file.csvOptions.delimiter}
+          {files.map(file => {
+            const isRemote = isRemoteUrl(file.path);
+            return (
+              <div
+                key={file.id}
+                className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700"
+              >
+                <div className="flex items-center space-x-3 flex-1 min-w-0">
+                  <span className="text-2xl">{getFileTypeIcon(file.type)}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center space-x-2">
+                      <code className="text-sm font-mono font-semibold text-blue-600 dark:text-blue-400">
+                        {file.alias}
+                      </code>
+                      <span className="text-xs px-1.5 py-0.5 rounded bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400">
+                        {file.type === 'auto' ? 'auto-detect' : file.type.toUpperCase()}
                       </span>
-                    )}
+                      {isRemote && (
+                        <span className="text-xs px-1.5 py-0.5 rounded bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300" title="Remote file">
+                          🌐 Remote
+                        </span>
+                      )}
+                      {file.csvOptions?.delimiter && (
+                        <span className="text-xs px-1.5 py-0.5 rounded bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300" title="Custom delimiter">
+                          delim: {file.csvOptions.delimiter === '\t' ? '\\t' : file.csvOptions.delimiter}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-500 truncate mt-1" title={file.path}>
+                      {file.path}
+                    </p>
                   </div>
-                  <p className="text-xs text-gray-500 truncate mt-1" title={file.path}>
-                    {file.path}
-                  </p>
                 </div>
+                {!disabled && (
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveFile(file.id)}
+                    className="ml-2 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 text-sm"
+                    title="Remove attached file"
+                  >
+                    Remove
+                  </button>
+                )}
               </div>
-              {!disabled && (
-                <button
-                  type="button"
-                  onClick={() => handleRemoveFile(file.id)}
-                  className="ml-2 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 text-sm"
-                  title="Remove attached file"
-                >
-                  Remove
-                </button>
-              )}
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
@@ -194,24 +242,59 @@ export default function AttachedFileList({ files, onChange, disabled }: Attached
             Attach New File
           </h4>
 
+          {/* Input Mode Toggle */}
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setInputMode('file')}
+              className={`flex-1 px-3 py-2 text-xs rounded transition-colors ${
+                inputMode === 'file'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
+              }`}
+            >
+              📁 Local File
+            </button>
+            <button
+              type="button"
+              onClick={() => setInputMode('url')}
+              className={`flex-1 px-3 py-2 text-xs rounded transition-colors ${
+                inputMode === 'url'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
+              }`}
+            >
+              🌐 Remote URL
+            </button>
+          </div>
+
           <div>
-            <label className="block text-xs font-medium mb-1">File Path</label>
+            <label className="block text-xs font-medium mb-1">
+              {inputMode === 'file' ? 'File Path' : 'Remote URL'}
+            </label>
             <div className="flex space-x-2">
               <input
                 type="text"
                 value={newPath}
-                onChange={(e) => setNewPath(e.target.value)}
+                onChange={(e) => handlePathChange(e.target.value)}
                 className="input-field flex-1 text-sm"
-                placeholder="/path/to/data.csv"
+                placeholder={inputMode === 'file' ? '/path/to/data.csv' : 'https://example.com/data.csv'}
               />
-              <button
-                type="button"
-                onClick={handleSelectFile}
-                className="btn-secondary text-sm whitespace-nowrap"
-              >
-                Browse...
-              </button>
+              {inputMode === 'file' && (
+                <button
+                  type="button"
+                  onClick={handleSelectFile}
+                  className="btn-secondary text-sm whitespace-nowrap"
+                >
+                  Browse...
+                </button>
+              )}
             </div>
+            {inputMode === 'url' && (
+              <p className="text-xs text-gray-500 mt-1">
+                Supports HTTP, HTTPS, and S3 URLs
+              </p>
+            )}
           </div>
 
           <div>

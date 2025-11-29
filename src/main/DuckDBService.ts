@@ -75,10 +75,16 @@ export class DuckDBService {
           }
         }
 
-        // Create views for attached files
+        // Create views for attached files (non-fatal - log warnings for failures)
         if (profile.attachedFiles?.length) {
           for (const file of profile.attachedFiles) {
-            await this.createAttachedFileView(connection, file);
+            try {
+              await this.createAttachedFileView(connection, file);
+            } catch (error) {
+              // Don't fail connection open if an attached file fails
+              // This allows users to still use the database even if a remote file is unavailable
+              console.warn(`Warning: Failed to attach file "${file.alias}": ${(error as Error).message}`);
+            }
           }
         }
 

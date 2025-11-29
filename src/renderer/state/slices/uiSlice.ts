@@ -40,6 +40,9 @@ const defaultSettings: AppSettings = {
 
 // Load settings from localStorage
 const loadSettings = (): AppSettings => {
+  if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
+    return defaultSettings;
+  }
   try {
     const stored = localStorage.getItem('orbital-db-settings');
     if (stored) {
