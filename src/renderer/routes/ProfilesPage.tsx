@@ -176,7 +176,8 @@ export default function ProfilesPage() {
             initialValues={editingProfile ? {
               name: editingProfile.name,
               dbPath: editingProfile.dbPath,
-              attachedFiles: editingProfile.attachedFiles
+              attachedFiles: editingProfile.attachedFiles,
+              s3Config: editingProfile.s3Config,
             } : undefined}
           />
         </div>
