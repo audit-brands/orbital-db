@@ -304,7 +304,7 @@ export default function PerformanceStatsPage() {
                 <li className="flex items-start space-x-2">
                   <span className="text-blue-600 dark:text-blue-400 mt-0.5">•</span>
                   <span>
-                    Consider using Parquet format for large datasets. It's optimized for analytical queries and offers better compression.
+                    Consider using Parquet format for large datasets. It&apos;s optimized for analytical queries and offers better compression.
                   </span>
                 </li>
               </ul>

@@ -39,7 +39,8 @@ export default function S3ConfigForm({ config, onChange, disabled }: S3ConfigFor
         console.error('Failed to check encryption availability:', error);
         setEncryptionAvailable(false);
       });
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run on mount - intentionally not including 'provider'
 
   // Load encrypted credentials when component mounts or config changes
   useEffect(() => {
