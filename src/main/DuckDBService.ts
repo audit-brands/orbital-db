@@ -111,6 +111,17 @@ export class DuckDBService {
             // Silently ignore cleanup errors
           }
         }
+
+        // Enhance error message for lock conflicts
+        const errorMessage = (error as Error).message;
+        if (errorMessage.includes('Conflicting lock') || errorMessage.includes('Could not set lock')) {
+          throw new Error(
+            `Database is already open in another connection or process. ` +
+            `Please close other connections to "${profile.name}" and try again. ` +
+            `(Original error: ${errorMessage})`
+          );
+        }
+
         throw error;
       }
     });
