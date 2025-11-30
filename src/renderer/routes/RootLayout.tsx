@@ -7,7 +7,6 @@ import Sidebar from '../components/Sidebar';
 import TopBar from '../components/TopBar';
 import StatusBar from '../components/StatusBar';
 import ToastContainer from '../components/ToastContainer';
-import ConfirmDialogContainer from '../components/ConfirmDialogContainer';
 
 export default function RootLayout() {
   const theme = useAppSelector((state) => state.ui.theme);
@@ -32,7 +31,6 @@ export default function RootLayout() {
         <StatusBar />
       </div>
       <ToastContainer />
-      <ConfirmDialogContainer />
     </div>
   );
 }

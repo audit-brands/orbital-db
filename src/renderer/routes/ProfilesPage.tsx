@@ -4,10 +4,11 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../state/hooks';
 import { loadProfiles, createProfile, updateProfile, deleteProfile } from '../state/slices/profilesSlice';
-import { addToast, showConfirmDialog } from '../state/slices/uiSlice';
+import { addToast } from '../state/slices/uiSlice';
 import type { DuckDBProfile, DuckDBProfileInput } from '@shared/types';
 import ProfileForm from '../components/ProfileForm';
 import ProfileList from '../components/ProfileList';
+import { useConfirmDialog } from '../hooks/useConfirmDialog';
 
 export default function ProfilesPage() {
   const dispatch = useAppDispatch();
@@ -16,6 +17,7 @@ export default function ProfilesPage() {
   const [showForm, setShowForm] = useState(false);
   const [editingProfile, setEditingProfile] = useState<DuckDBProfile | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const { showConfirm, ConfirmDialog } = useConfirmDialog();
 
   useEffect(() => {
     dispatch(loadProfiles());
@@ -72,11 +74,11 @@ export default function ProfilesPage() {
     setEditingProfile(null);
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = (id: string) => {
     const profile = profiles.find(p => p.id === id);
     const connectionName = profile?.name || 'connection';
 
-    dispatch(showConfirmDialog({
+    showConfirm({
       title: 'Delete Connection',
       message: `Are you sure you want to delete the connection "${connectionName}"?\n\nThis action cannot be undone.`,
       confirmLabel: 'Delete',
@@ -98,7 +100,7 @@ export default function ProfilesPage() {
           }));
         }
       },
-    }));
+    });
   };
 
   return (
@@ -216,6 +218,8 @@ export default function ProfilesPage() {
       ) : (
         <ProfileList profiles={filteredProfiles} onEdit={handleEdit} onDelete={handleDelete} />
       )}
+
+      <ConfirmDialog />
     </div>
   );
 }
