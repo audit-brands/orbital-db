@@ -3,6 +3,7 @@
 import { useAppDispatch, useAppSelector } from '../state/hooks';
 import { setThemeMode, updateSettings, resetSettings, addToast } from '../state/slices/uiSlice';
 import { useEffect, useState } from 'react';
+import { DEFAULT_QUERY_TIMEOUT_MS } from '@shared/constants';
 
 export default function SettingsPage() {
   const dispatch = useAppDispatch();
@@ -12,6 +13,9 @@ export default function SettingsPage() {
 
   // Local state for form inputs
   const [editorFontSize, setEditorFontSize] = useState(settings.editorFontSize);
+  const [timeoutInput, setTimeoutInput] = useState<string>(
+    String(settings.defaultQueryTimeout ?? DEFAULT_QUERY_TIMEOUT_MS)
+  );
 
   useEffect(() => {
     window.orbitalDb.app.getVersion().then(setVersion);
@@ -55,10 +59,35 @@ export default function SettingsPage() {
     }));
   };
 
+  const handleSaveQueryTimeout = () => {
+    const parsedTimeout = Number(timeoutInput);
+
+    // Validate timeout value
+    if (!Number.isFinite(parsedTimeout) || parsedTimeout < 0) {
+      dispatch(addToast({
+        type: 'error',
+        message: 'Invalid timeout value. Must be a positive number or 0 to disable.',
+        duration: 5000,
+      }));
+      return;
+    }
+
+    // Update settings
+    dispatch(updateSettings({ defaultQueryTimeout: parsedTimeout }));
+    dispatch(addToast({
+      type: 'success',
+      message: parsedTimeout === 0
+        ? 'Default query timeout disabled'
+        : `Default query timeout set to ${(parsedTimeout / 1000).toFixed(1)}s`,
+      duration: 4000,
+    }));
+  };
+
   const handleResetSettings = () => {
     if (confirm('Reset all settings to defaults? This cannot be undone.')) {
       dispatch(resetSettings());
       setEditorFontSize(14);
+      setTimeoutInput(String(DEFAULT_QUERY_TIMEOUT_MS));
       dispatch(addToast({
         type: 'info',
         message: 'Settings reset to defaults',
@@ -160,6 +189,51 @@ export default function SettingsPage() {
             <button onClick={handleSaveEditorSettings} className="btn-primary">
               Save Editor Settings
             </button>
+          </div>
+        </div>
+
+        {/* Query Execution Settings */}
+        <div className="card">
+          <h2 className="text-xl font-semibold mb-4">Query Execution</h2>
+
+          <div className="space-y-4">
+            <div>
+              <label htmlFor="timeout" className="block text-sm font-medium mb-2">
+                Default Query Timeout
+              </label>
+              <div className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+                Maximum time allowed for query execution. Set to 0 to disable timeout.
+                {settings.defaultQueryTimeout !== undefined && settings.defaultQueryTimeout > 0 && (
+                  <span className="block mt-1 text-blue-600 dark:text-blue-400">
+                    Current: {(settings.defaultQueryTimeout / 1000).toFixed(1)}s
+                  </span>
+                )}
+                {(settings.defaultQueryTimeout === undefined || settings.defaultQueryTimeout === 0) && (
+                  <span className="block mt-1 text-gray-600 dark:text-gray-400">
+                    Current: No timeout (queries can run indefinitely)
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center space-x-3">
+                <input
+                  id="timeout"
+                  type="number"
+                  min={0}
+                  step={1000}
+                  value={timeoutInput}
+                  onChange={(e) => setTimeoutInput(e.target.value)}
+                  className="input w-full max-w-xs"
+                  placeholder="e.g., 120000"
+                />
+                <span className="text-sm text-gray-600 dark:text-gray-400">milliseconds</span>
+                <button
+                  onClick={handleSaveQueryTimeout}
+                  className="btn-primary"
+                >
+                  Save
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 

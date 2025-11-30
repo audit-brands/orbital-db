@@ -629,40 +629,49 @@ SELECT * FROM sales_data JOIN customer_data ON sales_data.customer_id = customer
 
 **Goal**: Provide clear, non-intrusive feedback for all operations.
 
-**Status**: Core notification and feedback features fully implemented.
+**Status**: Core notification and feedback features fully implemented. Redux anti-pattern fixed (2025-11-30).
 
 **Features Implemented**:
 - Toast notification system for success/error messages ✅
 - Confirmation dialogs for destructive actions ✅
 - Status bar with connection and operation info ✅
 - Progress indicators for long-running operations ✅ (already existed in QueryEditor)
+- Component-local dialog state (Redux serialization compliant) ✅
 
 **Tasks**:
 - [x] Implement toast notification system (Toast/ToastContainer already in RootLayout)
 - [x] Create confirmation dialog component with danger/warning/info variants
-- [x] Add confirmation dialog state management to Redux (uiSlice)
+- [x] Add confirmation dialog state management (refactored to component-local)
 - [x] Implement confirmation dialogs for delete operations (ProfilesPage)
 - [x] Create status bar component showing connection status and database info
+- [x] Fix Redux anti-pattern (moved callbacks from Redux to component-local state)
 - [ ] Add undo stack for profile CRUD (deferred - complex, low priority)
 
 **Implementation Notes**:
 - Created ConfirmDialog component with three variants (danger, warning, info)
-- Added ConfirmDialogContainer to connect dialog to Redux state
+- Created useConfirmDialog hook for component-local state management
+- Removed ConfirmDialogContainer after refactoring (no longer needed)
 - Created StatusBar showing connection status, database name/type, read-only indicator, and file path
 - ProfilesPage uses toast notifications for all CRUD operations
-- ProfilesPage uses ConfirmDialog instead of browser confirm() for deletions
+- ProfilesPage uses ConfirmDialog via useConfirmDialog hook instead of browser confirm()
 - Toast system supports auto-dismiss and manual dismissal
 - Dialog supports ESC key, backdrop click to cancel, and keyboard navigation
+- Redux state is fully serializable (no function callbacks stored)
 
 **Files Created**:
 - src/renderer/components/ConfirmDialog.tsx - Reusable modal confirmation dialog
-- src/renderer/components/ConfirmDialogContainer.tsx - Redux integration
+- src/renderer/hooks/useConfirmDialog.tsx - Component-local dialog state hook
 - src/renderer/components/StatusBar.tsx - Bottom status bar component
 
 **Files Modified**:
-- src/renderer/state/slices/uiSlice.ts - Added ConfirmDialogState and actions
-- src/renderer/routes/RootLayout.tsx - Added ConfirmDialogContainer and StatusBar
-- src/renderer/routes/ProfilesPage.tsx - Replaced confirm() with ConfirmDialog
+- src/renderer/state/slices/uiSlice.ts - Removed ConfirmDialogState (refactored to local state)
+- src/renderer/routes/RootLayout.tsx - Added StatusBar, removed ConfirmDialogContainer
+- src/renderer/routes/ProfilesPage.tsx - Uses useConfirmDialog hook for deletions
+
+**Code Review**:
+- Codex reviewed and approved (2025-11-30)
+- Fixed Redux serialization anti-pattern per Codex feedback
+- CI passing (commit bcc7882)
 
 ---
 
@@ -816,4 +825,4 @@ SELECT * FROM sales_data JOIN customer_data ON sales_data.customer_id = customer
 - Phase 3: Performance Monitoring & Insights ✅ (CI passed 2025-11-30)
 - Phase 4: Data Import/Export (CSV Export) ✅
 - Phase 5: Advanced Features (Extension Management + Remote File Support) ✅
-- Phase 6: Notifications & Feedback ✅ (2025-11-30)
+- Phase 6: Notifications & Feedback ✅ COMPLETE (CI passed 2025-11-30, commit bcc7882)

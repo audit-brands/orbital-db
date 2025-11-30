@@ -28,12 +28,18 @@ type TabView = 'results' | 'history' | 'saved';
 
 export default function QueryEditor({ profileId, isReadOnly = false }: QueryEditorProps) {
   const theme = useSelector((state: RootState) => state.ui.theme);
+  const settings = useSelector((state: RootState) => state.ui.settings);
   const dispatch = useAppDispatch();
   const [sql, setSql] = useState('');
   const [result, setResult] = useState<QueryResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [timeoutMs, setTimeoutMs] = useState<string>(`${DEFAULT_QUERY_TIMEOUT_MS}`);
+
+  // Initialize timeout from settings, falling back to DEFAULT_QUERY_TIMEOUT_MS
+  const initialTimeout = settings.defaultQueryTimeout !== undefined
+    ? settings.defaultQueryTimeout
+    : DEFAULT_QUERY_TIMEOUT_MS;
+  const [timeoutMs, setTimeoutMs] = useState<string>(`${initialTimeout}`);
   const [historyRefreshKey, setHistoryRefreshKey] = useState(0);
   const [activeTab, setActiveTab] = useState<TabView>('results');
   const [showSaveDialog, setShowSaveDialog] = useState(false);

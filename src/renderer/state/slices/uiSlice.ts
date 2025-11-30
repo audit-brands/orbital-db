@@ -18,6 +18,9 @@ export interface AppSettings {
   editorFontSize: number;
   editorShowLineNumbers: boolean;
 
+  // Query Execution
+  defaultQueryTimeout?: number; // Default query timeout in milliseconds (0 or undefined = no timeout)
+
   // Startup Behavior
   reopenLastProfile: boolean;
   lastOpenedProfileId: string | null;
@@ -34,6 +37,7 @@ const defaultSettings: AppSettings = {
   themeMode: 'auto',
   editorFontSize: 14,
   editorShowLineNumbers: true,
+  defaultQueryTimeout: undefined, // No default timeout (queries can run indefinitely)
   reopenLastProfile: false,
   lastOpenedProfileId: null,
 };
