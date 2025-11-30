@@ -1,6 +1,6 @@
 // Database Overview component - shows all connections with table counts
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { DuckDBProfile } from '@shared/types';
 import { useAppDispatch } from '../state/hooks';
@@ -23,109 +23,75 @@ export default function DatabaseOverview({ profiles }: DatabaseOverviewProps) {
   const dispatch = useAppDispatch();
   const [stats, setStats] = useState<Map<string, DatabaseStats>>(new Map());
 
-  useEffect(() => {
-    // Initialize stats for all profiles
-    const initialStats = new Map<string, DatabaseStats>();
-    profiles.forEach((profile) => {
-      initialStats.set(profile.id, {
+  // Function to load stats for a single profile
+  const loadProfileStats = useCallback(async (profile: DuckDBProfile) => {
+    // Set loading state
+    setStats((prev) => {
+      const updated = new Map(prev);
+      updated.set(profile.id, {
         profileId: profile.id,
         tableCount: 0,
         schemaCount: 0,
         loading: true,
         error: null,
       });
-    });
-    setStats(initialStats);
-
-    // Track which profiles have had their connections acquired
-    const acquiredConnections = new Set<string>();
-    // Track cancellation
-    let cancelled = false;
-
-    // Fetch stats for each profile using reference-counted connections
-    profiles.forEach((profile) => {
-      (async () => {
-        try {
-          // Use reference-counted connection management
-          await dispatch(acquireConnection(profile.id)).unwrap();
-
-          // Track that we acquired this connection
-          if (!cancelled) {
-            acquiredConnections.add(profile.id);
-          }
-
-          // If already cancelled, release immediately and return
-          if (cancelled) {
-            dispatch(releaseConnection(profile.id));
-            return;
-          }
-
-          const schemas = await window.orbitalDb.schema.listSchemas(profile.id);
-
-          if (cancelled) {
-            dispatch(releaseConnection(profile.id));
-            return;
-          }
-
-          let totalTables = 0;
-          for (const schema of schemas) {
-            if (cancelled) {
-              dispatch(releaseConnection(profile.id));
-              return;
-            }
-            const tables = await window.orbitalDb.schema.listTables(profile.id, schema.schemaName);
-            totalTables += tables.length;
-          }
-
-          if (cancelled) {
-            dispatch(releaseConnection(profile.id));
-            return;
-          }
-
-          setStats((prev) => {
-            const updated = new Map(prev);
-            updated.set(profile.id, {
-              profileId: profile.id,
-              tableCount: totalTables,
-              schemaCount: schemas.length,
-              loading: false,
-              error: null,
-            });
-            return updated;
-          });
-        } catch (error) {
-          if (!cancelled) {
-            setStats((prev) => {
-              const updated = new Map(prev);
-              updated.set(profile.id, {
-                profileId: profile.id,
-                tableCount: 0,
-                schemaCount: 0,
-                loading: false,
-                error: (error as Error).message,
-              });
-              return updated;
-            });
-          }
-        } finally {
-          // Always release the connection when done (only if we acquired it)
-          if (acquiredConnections.has(profile.id)) {
-            dispatch(releaseConnection(profile.id));
-            acquiredConnections.delete(profile.id);
-          }
-        }
-      })();
+      return updated;
     });
 
-    // Cleanup: mark as cancelled and release any connections that were acquired
-    return () => {
-      cancelled = true;
-      // Only release connections we actually acquired
-      acquiredConnections.forEach((profileId) => {
-        dispatch(releaseConnection(profileId));
+    try {
+      // Use reference-counted connection management
+      await dispatch(acquireConnection(profile.id)).unwrap();
+
+      const schemas = await window.orbitalDb.schema.listSchemas(profile.id);
+
+      let totalTables = 0;
+      for (const schema of schemas) {
+        const tables = await window.orbitalDb.schema.listTables(profile.id, schema.schemaName);
+        totalTables += tables.length;
+      }
+
+      setStats((prev) => {
+        const updated = new Map(prev);
+        updated.set(profile.id, {
+          profileId: profile.id,
+          tableCount: totalTables,
+          schemaCount: schemas.length,
+          loading: false,
+          error: null,
+        });
+        return updated;
       });
-    };
-  }, [profiles, dispatch]);
+    } catch (error) {
+      setStats((prev) => {
+        const updated = new Map(prev);
+        updated.set(profile.id, {
+          profileId: profile.id,
+          tableCount: 0,
+          schemaCount: 0,
+          loading: false,
+          error: (error as Error).message,
+        });
+        return updated;
+      });
+    } finally {
+      // Always release the connection when done
+      dispatch(releaseConnection(profile.id));
+    }
+  }, [dispatch]);
+
+  // Load all profile stats on mount or when profiles change
+  useEffect(() => {
+    profiles.forEach((profile) => {
+      loadProfileStats(profile);
+    });
+  }, [profiles, loadProfileStats]);
+
+  // Refresh all stats
+  const handleRefreshAll = () => {
+    profiles.forEach((profile) => {
+      loadProfileStats(profile);
+    });
+  };
 
   if (profiles.length === 0) {
     return null;
@@ -133,7 +99,16 @@ export default function DatabaseOverview({ profiles }: DatabaseOverviewProps) {
 
   return (
     <div className="card">
-      <h2 className="text-xl font-semibold mb-4">Databases Overview</h2>
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-xl font-semibold">Databases Overview</h2>
+        <button
+          onClick={handleRefreshAll}
+          className="text-sm px-3 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-200 dark:hover:bg-gray-600"
+          title="Refresh all database statistics"
+        >
+          🔄 Refresh All
+        </button>
+      </div>
       <div className="space-y-3">
         {profiles.map((profile) => {
           const profileStats = stats.get(profile.id);
@@ -164,7 +139,20 @@ export default function DatabaseOverview({ profiles }: DatabaseOverviewProps) {
                   {profileStats?.loading ? (
                     <div className="text-sm text-gray-500">Loading statistics...</div>
                   ) : profileStats?.error ? (
-                    <div className="text-sm text-red-500">Error loading stats</div>
+                    <div className="mb-3">
+                      <div className="text-sm text-red-600 dark:text-red-400 font-medium mb-1">
+                        Error loading stats
+                      </div>
+                      <div className="text-xs text-gray-600 dark:text-gray-400 mb-2">
+                        {profileStats.error}
+                      </div>
+                      <button
+                        onClick={() => loadProfileStats(profile)}
+                        className="text-xs px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-800"
+                      >
+                        🔄 Retry
+                      </button>
+                    </div>
                   ) : (
                     <div className="flex space-x-4 text-sm mb-3">
                       <div>
