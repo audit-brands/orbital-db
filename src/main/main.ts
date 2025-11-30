@@ -6,6 +6,16 @@ import { DuckDBService } from './DuckDBService';
 import { ProfileStore } from './ProfileStore';
 import { registerIpcHandlers } from './ipcHandlers';
 
+// Suppress EPIPE errors when stdout/stderr closes (harmless during shutdown)
+process.on('uncaughtException', (error) => {
+  // Ignore EPIPE errors from console output
+  if (error.message?.includes('EPIPE')) {
+    return;
+  }
+  // Log other uncaught exceptions
+  console.error('Uncaught exception:', error);
+});
+
 // Initialize services
 let mainWindow: BrowserWindow | null = null;
 
