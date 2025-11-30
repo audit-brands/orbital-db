@@ -427,25 +427,76 @@ interface DuckDBProfile {
 - [ ] Handle authentication errors gracefully
 - [ ] Add MotherDuck documentation and examples
 
-### Remote File Support
+### Remote File Support ✅ COMPLETE
 
 **Goal**: Query data from HTTP and S3 URLs without downloading.
 
-**Features**:
-- Attach remote CSV/Parquet files via HTTP URLs
-- S3 integration with credentials
-- URL validation and connectivity checks
-- Caching strategy for frequently accessed remote files
-- Progress indicators for remote data access
+**Status**: Fully implemented - users can now attach and query remote files via HTTP/HTTPS/S3 URLs.
+
+**Implementation Summary**:
+
+**UI Features** (AttachedFileList.tsx):
+- Input mode toggle: "Local File" vs "Remote URL" ✅
+- URL validation for HTTP, HTTPS, and S3 protocols ✅
+- Auto-detection of file type from URL extension ✅
+- Alias suggestion from URL pathname ✅
+- Visual "🌐 Remote" badge for remote files ✅
+- File picker for local files or manual URL entry ✅
+
+**Backend Support** (DuckDBService.ts):
+- DuckDB's native read functions (`read_csv`, `read_parquet`, `read_json`) natively support URLs ✅
+- S3 authentication via httpfs extension with encrypted credentials ✅
+- Graceful error handling for unavailable remote files (non-fatal warnings) ✅
+- CREATE VIEW pattern works identically for local and remote files ✅
+
+**S3 Authentication** (configureS3Secrets):
+- Three authentication providers: 'config' (manual), 'credential_chain' (auto), 'env' (environment) ✅
+- Encrypted credential storage using OS-level safeStorage (Keychain/DPAPI/libsecret) ✅
+- Support for custom S3 endpoints (e.g., MinIO, Wasabi) ✅
+- Region, session token, URL style, and SSL configuration ✅
+
+**Example Usage**:
+```typescript
+// Attach remote Parquet file from HTTP
+{
+  alias: "sales_data",
+  path: "https://example.com/data/sales.parquet",
+  type: "parquet"
+}
+
+// Attach CSV from S3 (requires S3 config)
+{
+  alias: "customer_data",
+  path: "s3://my-bucket/customers.csv",
+  type: "csv"
+}
+
+// Query the remote files
+SELECT * FROM sales_data JOIN customer_data ON sales_data.customer_id = customer_data.id
+```
 
 **Tasks**:
-- [ ] Add URL support to AttachedFile type
-- [ ] Implement HTTP URL validation
-- [ ] Add S3 credentials to profile settings
-- [ ] Test DuckDB's native HTTP/S3 support
-- [ ] Add connection status for remote files
-- [ ] Implement file metadata caching
-- [ ] Handle network errors gracefully
+- [x] Add URL support to AttachedFile type
+- [x] Implement HTTP/HTTPS/S3 URL validation
+- [x] Add S3 credentials to profile settings
+- [x] Test DuckDB's native HTTP/S3 support
+- [x] Add connection status for remote files
+- [x] Handle network errors gracefully
+- [x] Create input mode toggle UI (Local File vs Remote URL)
+- [x] Implement auto-detection of file type from URL
+- [x] Add visual indicators for remote files
+- [x] Implement OS-level credential encryption for S3
+
+**Security**:
+- S3 credentials encrypted using Electron safeStorage API
+- UI warns users when encryption unavailable (e.g., Linux without libsecret)
+- Manual S3 credentials disabled when encryption unavailable
+- Lock icon only displayed when encryption confirmed available
+
+**Known Limitations**:
+- Remote file errors logged as warnings, don't fail connection open
+- No caching strategy (DuckDB handles HTTP caching internally)
+- No progress indicators for remote data access (future enhancement)
 
 ### Extension Management ✅ COMPLETE
 
@@ -701,4 +752,4 @@ interface DuckDBProfile {
 **Recent Completions**:
 - Phase 2: Query Experience Improvements ✅
 - Phase 4: Data Import/Export (CSV Export) ✅
-- Phase 5: Extension Management UI ✅
+- Phase 5: Advanced Features (Extension Management + Remote File Support) ✅
