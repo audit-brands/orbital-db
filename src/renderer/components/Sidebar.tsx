@@ -4,7 +4,8 @@ import { Link, useLocation } from 'react-router-dom';
 import { useAppSelector, useAppDispatch } from '../state/hooks';
 import { toggleSidebar } from '../state/slices/uiSlice';
 
-// Space Station Icon Component
+// Space Station Icon Component - Option 0 (Original)
+// Note: Options 0-7 are saved in icon-options.tsx
 function SpaceStationIcon({ className = "w-8 h-8" }: { className?: string }) {
   return (
     <svg
@@ -115,7 +116,7 @@ export default function Sidebar() {
 
       {!collapsed && (
         <div className="p-4 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500">
-          <p>Orbital DB v0.1.0</p>
+          <p>Orbital DB v0.2.0</p>
         </div>
       )}
     </aside>
