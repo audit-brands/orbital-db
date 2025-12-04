@@ -3,6 +3,7 @@
 import { DuckDBInstance, DuckDBConnection } from '@duckdb/node-api';
 import { CONFIG } from './config';
 import { CredentialManager } from './CredentialManager';
+import { validateRemoteUrl, validateS3Endpoint } from './utils/urlValidation';
 import type {
   DuckDBProfile,
   QueryResult,
@@ -70,9 +71,27 @@ export class DuckDBService {
         await connection.run(`PRAGMA memory_limit='${CONFIG.duckdb.defaultMemoryLimit}';`);
         await connection.run(`PRAGMA threads=${CONFIG.duckdb.defaultThreads};`);
 
+        // SECURITY: Load extensions with validation
         if (profile.extensions?.length) {
+          // Allowlist of approved DuckDB extensions
+          const ALLOWED_EXTENSIONS = [
+            'httpfs', 'parquet', 'json', 'icu', 'fts', 'excel',
+            'sqlite_scanner', 'postgres_scanner', 'mysql_scanner',
+            'spatial', 'tpcds', 'tpch'
+          ];
+
           for (const ext of profile.extensions) {
-            await connection.run(`LOAD '${ext}';`);
+            // Validate extension name against allowlist
+            if (!ALLOWED_EXTENSIONS.includes(ext)) {
+              throw new Error(
+                `Extension '${ext}' is not allowed. ` +
+                `Approved extensions: ${ALLOWED_EXTENSIONS.join(', ')}`
+              );
+            }
+
+            // Even with allowlist, escape quotes as defense-in-depth
+            const escapedExt = ext.replace(/'/g, "''");
+            await connection.run(`LOAD '${escapedExt}';`);
           }
         }
 
@@ -160,6 +179,12 @@ export class DuckDBService {
     connection: DuckDBConnection,
     file: AttachedFile
   ): Promise<void> {
+    // SECURITY: Validate remote URLs to prevent SSRF attacks
+    if (file.path.startsWith('http://') || file.path.startsWith('https://') || file.path.startsWith('s3://')) {
+      validateRemoteUrl(file.path.replace(/^s3:\/\//, 'https://'));
+      console.log(`Attaching remote file: ${file.alias} from ${file.path}`);
+    }
+
     const escapedPath = file.path.replace(/'/g, "''");
     const escapedAlias = file.alias.replace(/"/g, '""');
 
@@ -221,6 +246,14 @@ export class DuckDBService {
     s3Config: import('../shared/types').S3Config
   ): Promise<void> {
     try {
+      // SECURITY: Validate S3 endpoint to prevent SSRF attacks
+      if (s3Config.endpoint) {
+        const warning = validateS3Endpoint(s3Config.endpoint);
+        if (warning) {
+          console.warn(warning);
+        }
+      }
+
       // Install and load httpfs extension if not already loaded
       // This extension is required for S3 and HTTPS file access
       await connection.run(`INSTALL httpfs;`);
@@ -247,6 +280,17 @@ export class DuckDBService {
         const region = s3Config.region || 'us-east-1';
         const escapedRegion = region.replace(/'/g, "''");
 
+        // SECURITY: Validate S3 URL style against allowlist
+        if (s3Config.urlStyle) {
+          const ALLOWED_URL_STYLES = ['vhost', 'path'];
+          if (!ALLOWED_URL_STYLES.includes(s3Config.urlStyle)) {
+            throw new Error(
+              `Invalid S3 URL style '${s3Config.urlStyle}'. ` +
+              `Allowed values: ${ALLOWED_URL_STYLES.join(', ')}`
+            );
+          }
+        }
+
         // Build CREATE SECRET with manual credentials
         secretSQL = `
           CREATE OR REPLACE SECRET orbital_s3_secret (
@@ -257,6 +301,17 @@ export class DuckDBService {
           );
         `;
       } else if (s3Config.provider === 'credential_chain') {
+        // SECURITY: Validate S3 URL style against allowlist
+        if (s3Config.urlStyle) {
+          const ALLOWED_URL_STYLES = ['vhost', 'path'];
+          if (!ALLOWED_URL_STYLES.includes(s3Config.urlStyle)) {
+            throw new Error(
+              `Invalid S3 URL style '${s3Config.urlStyle}'. ` +
+              `Allowed values: ${ALLOWED_URL_STYLES.join(', ')}`
+            );
+          }
+        }
+
         // Automatic credential discovery from environment, IAM roles, or config files
         secretSQL = `
           CREATE OR REPLACE SECRET orbital_s3_secret (
@@ -265,6 +320,17 @@ export class DuckDBService {
           );
         `;
       } else if (s3Config.provider === 'env') {
+        // SECURITY: Validate S3 URL style against allowlist
+        if (s3Config.urlStyle) {
+          const ALLOWED_URL_STYLES = ['vhost', 'path'];
+          if (!ALLOWED_URL_STYLES.includes(s3Config.urlStyle)) {
+            throw new Error(
+              `Invalid S3 URL style '${s3Config.urlStyle}'. ` +
+              `Allowed values: ${ALLOWED_URL_STYLES.join(', ')}`
+            );
+          }
+        }
+
         // Use environment variables AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY
         secretSQL = `
           CREATE OR REPLACE SECRET orbital_s3_secret (
