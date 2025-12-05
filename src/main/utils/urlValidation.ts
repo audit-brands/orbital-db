@@ -130,7 +130,7 @@ export async function validateS3Endpoint(endpoint?: string): Promise<string | nu
     : `https://${endpoint}`;
 
   // Apply general URL validation (blocks private IPs, etc.)
-  validateRemoteUrl(normalizedEndpoint);
+  await validateRemoteUrl(normalizedEndpoint);
 
   // List of trusted S3 endpoints (AWS regions)
   const TRUSTED_S3_ENDPOINTS = [
