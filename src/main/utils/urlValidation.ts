@@ -3,14 +3,17 @@
 // This module provides validation functions to prevent Server-Side Request Forgery (SSRF)
 // attacks via remote file URLs and S3 endpoints.
 
+import { promises as dns } from 'dns';
+
 /**
  * Validates a remote URL for SSRF protection.
  * Blocks loopback, link-local, and private IP ranges.
+ * Resolves hostnames via DNS to prevent bypasses with hostnames pointing to private IPs.
  *
  * @param url - The URL to validate (must include protocol)
  * @throws Error if URL is not allowed
  */
-export function validateRemoteUrl(url: string): void {
+export async function validateRemoteUrl(url: string): Promise<void> {
   let parsed: URL;
   try {
     parsed = new URL(url);
@@ -27,43 +30,83 @@ export function validateRemoteUrl(url: string): void {
 
   const hostname = parsed.hostname.toLowerCase();
 
-  // Block loopback addresses
-  const LOOPBACK_ADDRESSES = ['localhost', '127.0.0.1', '::1', '0.0.0.0'];
-  if (LOOPBACK_ADDRESSES.some(addr => hostname === addr || hostname.endsWith(`.${addr}`))) {
-    throw new Error(
-      `Loopback addresses are not allowed: ${hostname}. ` +
-      `Remote files must be accessible from external networks.`
-    );
+  // Helper function to check if an IP is blocked
+  function isBlockedIP(ip: string): boolean {
+    // Block loopback addresses
+    const LOOPBACK_ADDRESSES = ['127.0.0.1', '::1', '0.0.0.0', '::'];
+    if (LOOPBACK_ADDRESSES.includes(ip)) {
+      return true;
+    }
+
+    // Block link-local and private IP ranges
+    const BLOCKED_IP_PATTERNS = [
+      /^10\./,                          // 10.0.0.0/8 (Private)
+      /^172\.(1[6-9]|2[0-9]|3[01])\./,  // 172.16.0.0/12 (Private)
+      /^192\.168\./,                    // 192.168.0.0/16 (Private)
+      /^169\.254\./,                    // 169.254.0.0/16 (Link-local, AWS metadata)
+      /^fd[0-9a-f]{2}:/i,               // IPv6 ULA (Unique Local Address)
+      /^fe80:/i,                        // IPv6 Link-local
+      /^fc00:/i,                        // IPv6 Unique Local Address
+    ];
+
+    if (BLOCKED_IP_PATTERNS.some(pattern => pattern.test(ip))) {
+      return true;
+    }
+
+    // Block common metadata service IPs explicitly
+    const METADATA_IPS = [
+      '169.254.169.254',  // AWS, GCP, Azure metadata
+      '100.100.100.200',  // Alibaba Cloud metadata
+    ];
+
+    if (METADATA_IPS.includes(ip)) {
+      return true;
+    }
+
+    return false;
   }
 
-  // Block link-local and private IP ranges
-  const BLOCKED_IP_PATTERNS = [
-    /^10\./,                          // 10.0.0.0/8 (Private)
-    /^172\.(1[6-9]|2[0-9]|3[01])\./,  // 172.16.0.0/12 (Private)
-    /^192\.168\./,                    // 192.168.0.0/16 (Private)
-    /^169\.254\./,                    // 169.254.0.0/16 (Link-local, AWS metadata)
-    /^fd[0-9a-f]{2}:/i,               // IPv6 ULA (Unique Local Address)
-    /^fe80:/i,                        // IPv6 Link-local
-    /^fc00:/i,                        // IPv6 Unique Local Address
-  ];
-
-  if (BLOCKED_IP_PATTERNS.some(pattern => pattern.test(hostname))) {
+  // Check if hostname is already an IP address
+  if (isBlockedIP(hostname)) {
     throw new Error(
       `Private/internal IP addresses are not allowed: ${hostname}. ` +
       `This restriction prevents access to internal network services and cloud metadata endpoints.`
     );
   }
 
-  // Additional check: Block common metadata service IPs explicitly
-  const METADATA_IPS = [
-    '169.254.169.254',  // AWS, GCP, Azure metadata
-    '100.100.100.200',  // Alibaba Cloud metadata
-  ];
-
-  if (METADATA_IPS.includes(hostname)) {
+  // Special case: 'localhost' as hostname
+  if (hostname === 'localhost') {
     throw new Error(
-      `Access to cloud metadata endpoints is blocked: ${hostname}. ` +
-      `This prevents credential theft via SSRF attacks.`
+      `Loopback addresses are not allowed: localhost. ` +
+      `Remote files must be accessible from external networks.`
+    );
+  }
+
+  // SECURITY: Resolve hostname via DNS to catch hostnames pointing to private IPs
+  // This prevents bypasses like corp-tunnel.example.com -> 127.0.0.1
+  try {
+    const addresses = await dns.lookup(hostname, { all: true });
+
+    // Check every resolved IP address
+    for (const { address, family } of addresses) {
+      if (isBlockedIP(address)) {
+        throw new Error(
+          `Hostname '${hostname}' resolves to blocked IP address: ${address} (IPv${family}). ` +
+          `This restriction prevents SSRF attacks via DNS rebinding or hostnames pointing to ` +
+          `internal services and cloud metadata endpoints.`
+        );
+      }
+    }
+  } catch (error) {
+    // If it's our own validation error, re-throw it
+    if ((error as Error).message.includes('resolves to blocked IP')) {
+      throw error;
+    }
+
+    // DNS lookup failed - reject to be safe
+    throw new Error(
+      `Failed to resolve hostname '${hostname}': ${(error as Error).message}. ` +
+      `Remote files must use resolvable hostnames. DNS resolution is required for security validation.`
     );
   }
 }
@@ -75,7 +118,7 @@ export function validateRemoteUrl(url: string): void {
  * @param endpoint - The S3 endpoint URL (e.g., "https://s3.amazonaws.com" or "s3.amazonaws.com")
  * @returns Warning message if endpoint is custom (non-AWS), null otherwise
  */
-export function validateS3Endpoint(endpoint?: string): string | null {
+export async function validateS3Endpoint(endpoint?: string): Promise<string | null> {
   if (!endpoint) {
     // No custom endpoint - using default AWS endpoint
     return null;

@@ -181,7 +181,7 @@ export class DuckDBService {
   ): Promise<void> {
     // SECURITY: Validate remote URLs to prevent SSRF attacks
     if (file.path.startsWith('http://') || file.path.startsWith('https://') || file.path.startsWith('s3://')) {
-      validateRemoteUrl(file.path.replace(/^s3:\/\//, 'https://'));
+      await validateRemoteUrl(file.path.replace(/^s3:\/\//, 'https://'));
       console.log(`Attaching remote file: ${file.alias} from ${file.path}`);
     }
 
@@ -248,7 +248,7 @@ export class DuckDBService {
     try {
       // SECURITY: Validate S3 endpoint to prevent SSRF attacks
       if (s3Config.endpoint) {
-        const warning = validateS3Endpoint(s3Config.endpoint);
+        const warning = await validateS3Endpoint(s3Config.endpoint);
         if (warning) {
           console.warn(warning);
         }
